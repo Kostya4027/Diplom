@@ -1,0 +1,14 @@
+D:\Diplom\ExamTickets\ExamTickets.Core\bin\Debug\net8.0\ExamTickets.Core.deps.json
+D:\Diplom\ExamTickets\ExamTickets.Core\bin\Debug\net8.0\ExamTickets.Core.runtimeconfig.json
+D:\Diplom\ExamTickets\ExamTickets.Core\bin\Debug\net8.0\ExamTickets.Core.dll
+D:\Diplom\ExamTickets\ExamTickets.Core\bin\Debug\net8.0\ExamTickets.Core.pdb
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.csproj.AssemblyReference.cache
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.AssemblyInfoInputs.cache
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.AssemblyInfo.cs
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.csproj.CoreCompileInputs.cache
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.dll
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\refint\ExamTickets.Core.dll
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.pdb
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ExamTickets.Core.genruntimeconfig.cache
+D:\Diplom\ExamTickets\ExamTickets.Core\obj\Debug\net8.0\ref\ExamTickets.Core.dll

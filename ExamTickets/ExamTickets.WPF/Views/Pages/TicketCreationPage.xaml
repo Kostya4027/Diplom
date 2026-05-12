@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="ExamTickets.WPF.Views.Pages.TicketCreationPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+      xmlns:conv="clr-namespace:ExamTickets.WPF.Converters"
+      mc:Ignorable="d"
+      Title="Создание билета">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <conv:NullToBoolConverter x:Key="NullToBoolConverter" />
+        <conv:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <conv:ValidationMessageBrushConverter x:Key="ValidationMessageBrushConverter" />
+    </Page.Resources>
+
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="520" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ЛЕВАЯ КОЛОНКА: форма -->
+        <ScrollViewer Grid.Column="0"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Auto"
+                      Margin="0,0,16,0">
+            <StackPanel>
+
+                <ComboBox ItemsSource="{Binding Specialties}"
+                          SelectedItem="{Binding SelectedSpecialty}"
+                          DisplayMemberPath="SpecialtyName"
+                          materialDesign:HintAssist.Hint="Специальность"
+                          Margin="0,0,0,12" />
+
+                <ComboBox ItemsSource="{Binding Subjects}"
+                          SelectedItem="{Binding SelectedSubject}"
+                          DisplayMemberPath="SubjectName"
+                          materialDesign:HintAssist.Hint="Предмет"
+                          Margin="0,0,0,12" />
+
+                <!-- Группы — множественный выбор -->
+                <TextBlock Text="Группы:" Margin="0,0,0,4"/>
+                <ListBox x:Name="GroupsListBox"
+                         ItemsSource="{Binding AllGroups}"
+                         DisplayMemberPath="GroupNumber"
+                         SelectionMode="Multiple"
+                         Height="100"
+                         Margin="0,0,0,12"
+                         SelectionChanged="GroupsListBox_SelectionChanged"/>
+
+                <!-- Преподаватели — множественный выбор -->
+                <TextBlock Text="Преподаватели:" Margin="0,0,0,4"/>
+                <ListBox x:Name="TeachersListBox"
+                         ItemsSource="{Binding Teachers}"
+                         DisplayMemberPath="FullName"
+                         SelectionMode="Multiple"
+                         Height="100"
+                         Margin="0,0,0,12"
+                         IsEnabled="{Binding SelectedSubject, Converter={StaticResource NullToBoolConverter}}"
+                         SelectionChanged="TeachersListBox_SelectionChanged"/>
+
+                <ComboBox ItemsSource="{Binding ExamTypes}"
+                          SelectedItem="{Binding ExamType}"
+                          materialDesign:HintAssist.Hint="Тип экзамена"
+                          Margin="0,0,0,12" />
+
+                <TextBox Text="{Binding Commission, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Комиссия"
+                         Margin="0,0,0,12" />
+
+                <TextBox Text="{Binding ProtocolNumber, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Протокол"
+                         Margin="0,0,0,12" />
+
+                <DatePicker SelectedDate="{Binding Date}"
+                            Margin="0,0,0,12" />
+
+                <TextBox Text="{Binding Chairman, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Председатель"
+                         Margin="0,0,0,12" />
+
+                <TextBox Text="{Binding Semester, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Семестр"
+                         IsReadOnly="True"
+                         Margin="0,0,0,12" />
+
+                <TextBox Text="{Binding Affirmer, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Утверждающий"
+                         Margin="0,0,0,12" />
+
+                <TextBox Text="{Binding AffirmerLastName, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Фамилия утверждающего"
+                         Margin="0,0,0,12" />
+
+                <DatePicker SelectedDate="{Binding DateOfStatement}"
+                            Margin="0,0,0,12" />
+
+                <!-- Количество билетов -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="Количество билетов:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox x:Name="TicketCountBox"
+                             Width="80"
+                             Text="{Binding TicketCount, UpdateSourceTrigger=PropertyChanged}"
+                             PreviewTextInput="TicketCountBox_PreviewTextInput"/>
+                    <TextBlock Text="{Binding MaxTickets, StringFormat='Максимум: {0}'}"
+                               VerticalAlignment="Center" Margin="8,0,0,0" Foreground="Gray"/>
+                </StackPanel>
+
+                <ComboBox ItemsSource="{Binding QuestionModes}"
+                          SelectedItem="{Binding SelectedQuestionMode}"
+                          materialDesign:HintAssist.Hint="Режим вопросов"
+                          Margin="0,0,0,12" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBox Text="{Binding QuestionFilePath, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Файл вопросов"
+                             Width="Auto"
+                             MinWidth="300" />
+
+                    <materialDesign:PackIcon Width="22"
+                                             Height="22"
+                                             Margin="8,0,0,0"
+                                             Kind="CheckCircle"
+                                             Foreground="Green"
+                                             Visibility="{Binding IsFileValid, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <!-- Убедитесь, что конвертер InverseBooleanToVisibilityConverter добавлен в ресурсы если используете -->
+                    <materialDesign:PackIcon Width="22"
+                                             Height="22"
+                                             Margin="8,0,0,0"
+                                             Kind="CloseCircle"
+                                             Foreground="Red"
+                                             Visibility="{Binding IsFileValid, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding FileValidationMessage}"
+                           Margin="0,4,0,12"
+                           Foreground="{Binding IsFileValid, Converter={StaticResource ValidationMessageBrushConverter}}" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="Выбрать файл"
+                            Command="{Binding BrowseFileCommand}"
+                            Margin="0,0,8,0" />
+                    
+                    <Button Content="Создать"
+                            Command="{Binding GenerateCommand}"
+                            IsEnabled="{Binding CanGenerate}"
+                            Margin="0,0,8,0"/>
+                </StackPanel>
+
+                <!-- Предпросмотр, Сохранить, Печать -->
+                <StackPanel Orientation="Horizontal"
+                            Margin="0,8,0,0"
+                            Visibility="{Binding IsGenerated, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ComboBox ItemsSource="{Binding SaveFormats}"
+                              SelectedItem="{Binding SaveFormat}"
+                              Width="80" Margin="0,0,8,0"/>
+                    <Button Content="Сохранить" Command="{Binding SaveCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Предпросмотр" Command="{Binding PreviewCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Печать" Command="{Binding PrintCommand}"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ПРАВАЯ КОЛОНКА: предпросмотр -->
+        <ScrollViewer Grid.Column="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Auto">
+            <Border BorderBrush="{DynamicResource MaterialDesignDivider}"
+                    BorderThickness="1"
+                    Padding="8"
+                    Background="{DynamicResource MaterialDesignPaper}">
+                <StackPanel>
+                    <TextBlock Text="{Binding PreviewInstitution}"
+                               FontSize="10"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource MaterialDesignBody}"
+                               Margin="0,0,0,8" />
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                    BorderThickness="1"
+                                    Padding="6">
+                                <TextBlock FontSize="9" TextWrapping="Wrap" Foreground="{DynamicResource MaterialDesignBody}">
+                                    <Run Text="Рассмотрено предметно-цикловой комиссией"/>
+                                    <LineBreak/>
+                                    <Run Text="«"/>
+                                    <Run Text="{Binding PreviewCommission}"/>
+                                    <Run Text="» протокол №"/>
+                                    <Run Text="{Binding PreviewProtocol}"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding PreviewDate}"/>
+                                    <LineBreak/>
+                                    <Run Text="Председатель_____________"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding PreviewChairman}"/>
+                                </TextBlock>
+                            </Border>
+
+                            <Border Grid.Column="1"
+                                    BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                    BorderThickness="1"
+                                    Padding="6">
+                                <TextBlock FontSize="9"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           Foreground="{DynamicResource MaterialDesignBody}">
+                                    <Run Text="Экзаменационный билет №_1_" FontWeight="Bold"/>
+                                    <LineBreak/>
+                                    <Run Text="по специальности "/>
+                                    <Run Text="{Binding PreviewSpecialtyNumber}"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding PreviewExamType}" FontWeight="Bold"/>
+                                    <Run Text=" «" FontWeight="Bold"/>
+                                    <Run Text="{Binding PreviewExam}" FontWeight="Bold"/>
+                                    <Run Text="»" FontWeight="Bold"/>
+                                    <LineBreak/>
+                                    <Run Text="группы "/>
+                                    <Run Text="{Binding PreviewGroups}" FontWeight="Bold"/>
+                                    <LineBreak/>
+                                    <Run Text="Семестр "/>
+                                    <Run Text="{Binding PreviewSemester}"/>
+                                </TextBlock>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                    BorderThickness="1"
+                                    Padding="6">
+                                <TextBlock FontSize="9" TextWrapping="Wrap" Foreground="{DynamicResource MaterialDesignBody}">
+                                    <Run Text="«УТВЕРДЖДАЮ»" FontWeight="Bold"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding PreviewAffirmer}"/>
+                                    <LineBreak/>
+                                    <Run Text="по УМР __________"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding PreviewAffirmerLastName}"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding PreviewDateOfStatement}"/>
+                                </TextBlock>
+                            </Border>
+                        </Grid>
+
+                        <Border Grid.Row="1"
+                                Grid.ColumnSpan="3"
+                                BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                BorderThickness="1"
+                                Padding="6">
+                            <TextBlock FontSize="9" TextWrapping="Wrap" Foreground="{DynamicResource MaterialDesignBody}">
+                                <Run Text="{Binding PreviewQuestion1}"/>
+                                <LineBreak/>
+                                <Run Text="{Binding PreviewQuestion2}"/>
+                                <LineBreak/>
+                                <Run Text="{Binding PreviewQuestion3}"/>
+                                <LineBreak/>
+                                <Run Text="{Binding PreviewQuestion4}"/>
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="Преподаватели: ______________ "/>
+                                <Run Text="{Binding PreviewTeachers}"/>
+                            </TextBlock>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+    </Grid>
+</Page>

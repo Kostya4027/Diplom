@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="ExamTickets.WPF.Views.Pages.DashboardPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+      mc:Ignorable="d"
+      Title="Дашборд">
+
+    <Grid Margin="16" Background="{DynamicResource MaterialDesignPaper}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="{Binding WelcomeMessage}"
+                   FontSize="24"
+                   FontWeight="Medium"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,32"
+                   Foreground="{DynamicResource MaterialDesignBody}" />
+
+        <UniformGrid Grid.Row="1" Columns="3" HorizontalAlignment="Center" Width="800">
+            <!-- Карточка 1 -->
+            <materialDesign:Card Margin="8" 
+                                 Padding="16" 
+                                 MinHeight="150"
+                                 materialDesign:ElevationAssist.Elevation="Dp4"
+                                 Background="{DynamicResource MaterialDesignPaper}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="FormatListNumbered" 
+                                                 Width="48" Height="48" 
+                                                 Foreground="{DynamicResource PrimaryHueMidBrush}" 
+                                                 VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding QuestionsCount}" 
+                                   FontSize="48" 
+                                   FontWeight="Bold" 
+                                   Margin="16,0,0,0" 
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MaterialDesignBody}"/>
+                    </StackPanel>
+                    <TextBlock Text="Загружено вопросов" 
+                               FontSize="16" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,8,0,0" 
+                               Foreground="Gray"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- Карточка 2 -->
+            <materialDesign:Card Margin="8" 
+                                 Padding="16" 
+                                 MinHeight="150"
+                                 materialDesign:ElevationAssist.Elevation="Dp4"
+                                 Background="{DynamicResource MaterialDesignPaper}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="TicketConfirmationOutline" 
+                                                 Width="48" Height="48" 
+                                                 Foreground="{DynamicResource PrimaryHueMidBrush}" 
+                                                 VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding TicketsCount}" 
+                                   FontSize="48" 
+                                   FontWeight="Bold" 
+                                   Margin="16,0,0,0" 
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MaterialDesignBody}"/>
+                    </StackPanel>
+                    <TextBlock Text="Сгенерировано билетов" 
+                               FontSize="16" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,8,0,0" 
+                               Foreground="Gray"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- Карточка 3 -->
+            <materialDesign:Card Margin="8" 
+                                 Padding="16" 
+                                 MinHeight="150"
+                                 materialDesign:ElevationAssist.Elevation="Dp4"
+                                 Background="{DynamicResource MaterialDesignPaper}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="CalendarCheckOutline" 
+                                                 Width="48" Height="48" 
+                                                 Foreground="{DynamicResource PrimaryHueMidBrush}" 
+                                                 VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding EventsCount}" 
+                                   FontSize="48" 
+                                   FontWeight="Bold" 
+                                   Margin="16,0,0,0" 
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MaterialDesignBody}"/>
+                    </StackPanel>
+                    <TextBlock Text="Экзаменационных событий" 
+                               FontSize="16" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,8,0,0" 
+                               Foreground="Gray"/>
+                </StackPanel>
+            </materialDesign:Card>
+        </UniformGrid>
+
+        <TextBlock Grid.Row="2"
+                   Text="Для начала работы выберите раздел в левом меню"
+                   FontSize="14"
+                   Foreground="Gray"
+                   HorizontalAlignment="Center"
+                   Margin="0,32,0,0" />
+    </Grid>
+</Page>

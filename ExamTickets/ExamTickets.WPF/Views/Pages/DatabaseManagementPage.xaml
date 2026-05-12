@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="ExamTickets.WPF.Views.Pages.DatabaseManagementPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      mc:Ignorable="d"
+      Title="Справочники">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <ComboBox Width="220"
+                      ItemsSource="{Binding Tables}"
+                      SelectedItem="{Binding SelectedTable}" />
+            <Button Content="Добавить" Command="{Binding AddRowCommand}" Margin="12,0,0,0" />
+            <Button Content="Удалить" Command="{Binding DeleteRowCommand}" CommandParameter="{Binding SelectedItem}" Margin="8,0,0,0" />
+            <Button Content="Сохранить" Command="{Binding SaveChangesCommand}" Margin="8,0,0,0" />
+            <Button Content="Обновить" Command="{Binding RefreshCommand}" Margin="8,0,0,0" />
+        </StackPanel>
+
+        <!-- Специальности -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Specialties}"
+                  SelectedItem="{Binding SelectedItem}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  ColumnWidth="*"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedTable}" Value="Специальности">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Название"
+                                    Binding="{Binding SpecialtyName, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Номер"
+                                    Binding="{Binding SpecialtyNumber, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="200">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Предметы -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Subjects}"
+                  SelectedItem="{Binding SelectedItem}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  ColumnWidth="*"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedTable}" Value="Предметы">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Название"
+                                    Binding="{Binding SubjectName, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="2*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridComboBoxColumn Header="Специальность"
+                                        SelectedValueBinding="{Binding SpecialtyID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        SelectedValuePath="SpecialtyID"
+                                        DisplayMemberPath="SpecialtyName"
+                                        Width="200">
+                    <DataGridComboBoxColumn.ElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Specialties, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.ElementStyle>
+                    <DataGridComboBoxColumn.EditingElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Specialties, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.EditingElementStyle>
+                </DataGridComboBoxColumn>
+
+                <DataGridTextColumn Header="Семестр"
+                                    Binding="{Binding Semester, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Группы -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Groups}"
+                  SelectedItem="{Binding SelectedItem}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  ColumnWidth="*"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedTable}" Value="Группы">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Номер группы"
+                                    Binding="{Binding GroupNumber, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridComboBoxColumn Header="Специальность"
+                                        SelectedValueBinding="{Binding SpecialtyID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        SelectedValuePath="SpecialtyID"
+                                        DisplayMemberPath="SpecialtyName"
+                                        Width="200">
+                    <DataGridComboBoxColumn.ElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Specialties, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.ElementStyle>
+                    <DataGridComboBoxColumn.EditingElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Specialties, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.EditingElementStyle>
+                </DataGridComboBoxColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Преподаватели -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Teachers}"
+                  SelectedItem="{Binding SelectedItem}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  ColumnWidth="*"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedTable}" Value="Преподаватели">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ФИО"
+                                    Binding="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Привязки преподавателей -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding TeacherSubjects}"
+                  SelectedItem="{Binding SelectedItem}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  ColumnWidth="*"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedTable}" Value="Привязки преподавателей">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+            <DataGrid.Columns>
+                <DataGridComboBoxColumn Header="Преподаватель"
+                                        SelectedValueBinding="{Binding TeacherID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        SelectedValuePath="TeacherID"
+                                        DisplayMemberPath="FullName"
+                                        Width="*">
+                    <DataGridComboBoxColumn.ElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Teachers, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.ElementStyle>
+                    <DataGridComboBoxColumn.EditingElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Teachers, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.EditingElementStyle>
+                </DataGridComboBoxColumn>
+
+                <DataGridComboBoxColumn Header="Предмет"
+                                        SelectedValueBinding="{Binding SubjectID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        SelectedValuePath="SubjectID"
+                                        DisplayMemberPath="SubjectName"
+                                        Width="*">
+                    <DataGridComboBoxColumn.ElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Subjects, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.ElementStyle>
+                    <DataGridComboBoxColumn.EditingElementStyle>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding DataContext.Subjects, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        </Style>
+                    </DataGridComboBoxColumn.EditingElementStyle>
+                </DataGridComboBoxColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="2"
+                   Margin="0,12,0,0"
+                   Foreground="Gray"
+                   Text="ID создаются СУБД автоматически." />
+    </Grid>
+</Page>

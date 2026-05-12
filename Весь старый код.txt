@@ -1,0 +1,4066 @@
+Запрос для БД
+private string connectionString = "Data Source=KOSTYA\\SQLEXPRESS;Initial Catalog=ExamTicketsDB;Integrated Security=True;";
+
+CREATE TABLE Specialties (
+
+    SpecialtyID INT PRIMARY KEY IDENTITY,
+    SpecialtyName NVARCHAR(100) NOT NULL,
+    SpecialtyNumber NVARCHAR(255) NOT NULL
+
+);
+
+
+CREATE TABLE Subjects (
+
+    SubjectID INT PRIMARY KEY IDENTITY,
+    SubjectName NVARCHAR(100) NOT NULL,
+    SpecialtyID INT NOT NULL,
+    Semester INT NOT NULL
+
+    FOREIGN KEY (SpecialtyID) REFERENCES Specialties(SpecialtyID)
+
+);
+
+
+CREATE TABLE Teachers (
+
+    TeacherID INT PRIMARY KEY IDENTITY,
+    SubjectID INT NOT NULL,
+    FullName NVARCHAR(100) NOT NULL
+    
+    FOREIGN KEY (SubjectID) REFERENCES Subjects(SubjectID)
+
+);
+
+CREATE TABLE QuestionDocuments (
+
+    QuestionID INT PRIMARY KEY IDENTITY,
+    FilePath NVARCHAR(500) NOT NULL
+
+);
+
+
+
+CREATE TABLE TicketDocuments (
+
+    TicketID INT PRIMARY KEY IDENTITY,
+    FilePath NVARCHAR(500) NOT NULL
+
+);
+
+CREATE TABLE Groups (
+
+    GroupID INT PRIMARY KEY IDENTITY,
+    SpecialtyID INT NOT NULL,
+    GroupNumber NVARCHAR(500) NOT NULL
+
+    FOREIGN KEY (SpecialtyID) REFERENCES Specialties(SpecialtyID)
+);
+
+
+CREATE TABLE ExamEvents (
+
+    EventID INT PRIMARY KEY IDENTITY,
+    SubjectID INT NOT NULL,
+    SpecialtyID INT NOT NULL,
+    TeacherID INT NOT NULL,
+    QuestionID INT NOT NULL,
+    TicketID INT NOT NULL,
+    ExamDate DATE NOT NULL,
+
+
+    FOREIGN KEY (SubjectID) REFERENCES Subjects(SubjectID),
+    FOREIGN KEY (SpecialtyID) REFERENCES Specialties(SpecialtyID),
+    FOREIGN KEY (TeacherID) REFERENCES Teachers(TeacherID),
+    FOREIGN KEY (QuestionID) REFERENCES QuestionDocuments(QuestionID),
+    FOREIGN KEY (TicketID) REFERENCES TicketDocuments(TicketID)
+);
+
+TicketGenerator.cs
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using DinkToPdf;
+using DinkToPdf.Contracts;
+using System.IO;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
+using System.Resources;
+using System.Diagnostics;
+using System.Windows.Forms;
+using DocumentFormat.OpenXml;
+//using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+
+namespace Exam_Tickets
+{
+    internal class TicketGenerator
+    {
+        private static readonly List<string> AllPossibleQuestionMarkers = new List<string>
+    {
+        "Вопрос 1",
+        "Вопрос 2",
+        "Вопрос 3", 
+        "Задача"
+    };
+        // Извлечение вопросов по маркерам
+        public static Dictionary<string, List<string>> ExtractQuestions(string filePath, List<string> markers)
+        {
+            var questions = new Dictionary<string, List<string>>();
+            string currentMarker = null;
+
+            using (WordprocessingDocument doc = WordprocessingDocument.Open(filePath, false))
+            {
+                var body = doc.MainDocumentPart.Document.Body;
+
+                foreach (var paragraph in body.Elements<Paragraph>())
+                {
+                    string text = paragraph.InnerText.Trim();
+
+                    if (markers.Contains(text))
+                    {
+                        currentMarker = text;
+                        if (!questions.ContainsKey(currentMarker))
+                        {
+                            questions[currentMarker] = new List<string>();
+                        }
+                    }
+                    else if (currentMarker != null && text.Length > 0)
+                    {
+                        questions[currentMarker].Add(text);
+                    }
+                }
+            }
+
+            return questions;
+        }
+
+
+
+        // Генерация билетов
+        public static List<List<string>> GenerateTickets(Dictionary<string, List<string>> questions, List<string> usedMarkers, int ticketCount)
+        {
+            var random = new Random();
+            var tickets = new List<List<string>>();
+
+            for (int i = 0; i < ticketCount; i++)
+            {
+                var ticket = new List<string>();
+
+                foreach (string marker in usedMarkers)
+                {
+                    if (!questions.ContainsKey(marker) || questions[marker].Count == 0)
+                    {
+                        ticket.Add("Вопрос отсутствует");
+                        continue;
+                    }
+
+                    int index = random.Next(questions[marker].Count);
+                    string selected = questions[marker][index];
+                    ticket.Add($"{marker}: {selected}");
+
+                    // чтобы не повторялся
+                    questions[marker].RemoveAt(index);
+                }
+
+                tickets.Add(ticket);
+            }
+
+            return tickets;
+        }
+
+
+
+
+
+        // Создание документа с билетами
+        public static byte[] GenerateTicketsDocument(List<List<string>> tickets, string filledTemplatePath)
+        {
+            using (MemoryStream outputStream = new MemoryStream())
+            {
+                using (WordprocessingDocument outputDoc = WordprocessingDocument.Create(outputStream, WordprocessingDocumentType.Document))
+                {
+                    var mainPart = outputDoc.AddMainDocumentPart();
+                    mainPart.Document = new Document(new Body());
+                    var outputBody = mainPart.Document.Body;
+
+                    foreach (var (ticket, index) in tickets.Select((t, i) => (t, i)))
+                    {
+                        using (WordprocessingDocument templateDoc = WordprocessingDocument.Open(filledTemplatePath, false))
+                        {
+                            var templateBody = (Body)templateDoc.MainDocumentPart.Document.Body.CloneNode(true);
+
+                            var replacements = new Dictionary<string, string>
+{
+    { "{ticketnumber}", (index + 1).ToString() }
+};
+
+                            for (int i = 0; i < ticket.Count; i++)
+                            {
+                                replacements.Add($"{{QUESTION{i + 1}}}", ticket[i]);
+                            }
+                            // Удалим все неиспользованные маркеры {QUESTIONX}
+                            for (int i = ticket.Count + 1; i <= 4; i++)
+                            {
+                                string unusedMarker = $"{{QUESTION{i}}}";
+                                ReplaceTextPlaceholders(templateBody, new Dictionary<string, string>
+    {
+        { unusedMarker, "" }
+    });
+                            }
+                            ReplaceTextPlaceholders(templateBody, replacements);
+
+                            foreach (var element in templateBody.Elements())
+                                outputBody.Append(element.CloneNode(true));
+                        }
+
+                        if (index < tickets.Count - 1)
+                        {
+                            outputBody.Append(new Paragraph(new Run(new Break() { Type = BreakValues.Page })));
+                        }
+                    }
+
+                    mainPart.Document.Save();
+                }
+
+                return outputStream.ToArray();
+            }
+        }
+
+        public static bool ValidateQuestionFile(string filePath, List<string> currentRequiredMarkers)
+        {
+            if (IsFileLocked(filePath))
+            {
+                MessageBox.Show("Файл уже открыт в другой программе. Пожалуйста, закройте его и попробуйте снова.", "Файл занят", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            var actualRecognizedMarkersInDoc = new HashSet<string>();
+            try
+            {
+                using (WordprocessingDocument doc = WordprocessingDocument.Open(filePath, false))
+                {
+                    var body = doc.MainDocumentPart?.Document?.Body;
+                    if (body == null)
+                    {
+                        MessageBox.Show("Не удалось прочитать структуру документа.", "Ошибка файла", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return false;
+                    }
+
+                    foreach (var paragraph in body.Descendants<Paragraph>())
+                    {
+                        string text = paragraph.InnerText.Trim();
+                        if (AllPossibleQuestionMarkers.Contains(text))
+                        {
+                            actualRecognizedMarkersInDoc.Add(text);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Произошла ошибка при чтении файла: {ex.Message}", "Ошибка чтения файла", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            
+            var requiredMarkersSet = new HashSet<string>(currentRequiredMarkers);
+
+            
+            if (actualRecognizedMarkersInDoc.SetEquals(requiredMarkersSet))
+            {
+                return true; 
+            }
+            else
+            {
+                var missingMarkers = requiredMarkersSet.Except(actualRecognizedMarkersInDoc).ToList();
+                var extraMarkers = actualRecognizedMarkersInDoc.Except(requiredMarkersSet).ToList();
+
+                StringBuilder errorMessage = new StringBuilder("Файл не соответствует выбранному шаблону билета.");
+
+                if (missingMarkers.Any())
+                {
+                    errorMessage.Append($"\nОтсутствуют необходимые маркеры: {string.Join(", ", missingMarkers)}");
+                }
+                if (extraMarkers.Any())
+                {
+                    errorMessage.Append($"\nОбнаружены лишние маркеры в файле: {string.Join(", ", extraMarkers)}");
+                }
+
+                MessageBox.Show(errorMessage.ToString(), "Несоответствие шаблону", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        public static int CalculateMaxTickets(Dictionary<string, List<string>> questions, List<string> usedMarkers)
+        {
+            int min = int.MaxValue;
+
+            foreach (string marker in usedMarkers)
+            {
+                if (!questions.ContainsKey(marker) || questions[marker].Count == 0)
+                    return 0;
+
+                if (questions[marker].Count < min)
+                    min = questions[marker].Count;
+            }
+
+            return min;
+        }
+        // Заполнение шаблона данными из Ticket
+        public static string FillTemplate(Ticket ticket)
+        {
+            string tempFilePath = Path.Combine(Path.GetTempPath(), $"filled_{Guid.NewGuid()}.docx");
+            File.WriteAllBytes(tempFilePath, Properties.Resources.TicketTemplate);
+
+            using (WordprocessingDocument doc = WordprocessingDocument.Open(tempFilePath, true))
+            {
+                var replacements = new Dictionary<string, string>
+        {
+            { "{educationalinstitution}", ticket.educationalInstitution },
+            { "{commission}", ticket.commission },
+            { "{protocolnumber}", ticket.protocolNumber },
+            { "{date}", ticket.date },
+            { "{chairman}", ticket.chairman },
+            { "{specialitynumber}", ticket.specialityNumber },
+            { "{examtype}", ticket.examtype },
+            { "{module}", ticket.module },
+            { "{exam}", ticket.exam },
+            { "{groupsnumber}", ticket.groupsNumber },
+            { "{semester}", ticket.semester },
+            { "{affirmer}", ticket.affirmer },
+            { "{afirmerlastname}", ticket.affirmerLastName },
+            { "{dateofstatement}", ticket.dateOfStatement },
+            { "{teachers}", ticket.teachers },
+        };
+
+                ReplaceTextPlaceholders(doc.MainDocumentPart.Document.Body, replacements);
+
+                doc.MainDocumentPart.Document.Save();
+            }
+
+            return tempFilePath;
+        }
+
+
+        //метод для печати
+        public static void PrintWordDocumentFromByteArray(byte[] fileContent)
+        {
+            try
+            {
+                string tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.docx");
+                File.WriteAllBytes(tempFilePath, fileContent);
+
+                if (!File.Exists(tempFilePath))
+                {
+                    MessageBox.Show("Файл не найден для печати.");
+                    return;
+                }
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = tempFilePath,
+                    Verb = "print",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                using (var process = Process.Start(psi))
+                {
+                    process.WaitForExit(30000);
+                }
+
+                File.Delete(tempFilePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при печати: {ex.Message}");
+            }
+        }
+        public static void UpdateRichTextBox(string template, Dictionary<string, string> replacements, RichTextBox richTextBox)
+        {
+            string result = template;
+
+            foreach (var pair in replacements)
+            {
+                string marker = "{" + pair.Key + "}";
+                result = result.Replace(marker, pair.Value);
+            }
+
+            richTextBox.Text = result;
+        }
+        public static string GenerateTemporaryDocument(byte[] fileContent)
+        {
+            string path = Path.Combine(Path.GetTempPath(), "GeneratedTicket_" + Guid.NewGuid() + ".docx");
+            File.WriteAllBytes(path, fileContent);
+            return path;
+        }
+        public static void ReplaceTextPlaceholders(OpenXmlElement root, Dictionary<string, string> replacements)
+        {
+            foreach (var paragraph in root.Descendants<Paragraph>())
+            {
+                var texts = paragraph.Descendants<Text>().ToList();
+                string fullText = string.Join("", texts.Select(t => t.Text));
+
+                bool hasPlaceholder = replacements.Keys.Any(marker => fullText.Contains(marker));
+                if (!hasPlaceholder) continue;
+
+                foreach (var pair in replacements)
+                {
+                    fullText = fullText.Replace(pair.Key, pair.Value);
+                }
+
+                // Очистим старые Text
+                foreach (var text in texts)
+                    text.Text = "";
+
+                // Вставим новый текст в первый Run
+                var firstRun = paragraph.Elements<Run>().FirstOrDefault();
+                if (firstRun != null)
+                {
+                    firstRun.RemoveAllChildren<Text>();
+                    firstRun.AppendChild(new Text(fullText));
+                }
+
+                // Центрирование для educationalinstitution
+                if (replacements.ContainsKey("{educationalinstitution}") && fullText.Contains(replacements["{educationalinstitution}"]))
+                {
+                    var props = paragraph.GetFirstChild<ParagraphProperties>();
+                    if (props == null)
+                    {
+                        props = new ParagraphProperties();
+                        paragraph.PrependChild(props);
+                    }
+
+                    props.Justification = new Justification() { Val = JustificationValues.Center };
+                }
+            }
+        }
+
+        public static bool IsFileLocked(string path)
+        {
+            try
+            {
+                using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    return false; 
+                }
+            }
+            catch (IOException)
+            {
+                return true; 
+            }
+        }
+    }
+}
+Ticket.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Exam_Tickets
+{
+    internal class Ticket
+    {
+        public string educationalInstitution;
+        public string commission;
+        public string protocolNumber;
+        public string date;
+        public string chairman;
+        public string specialityNumber;
+        public string examtype;
+        public string module;
+        public string exam;
+        public string groupsNumber;
+        public string semester;
+        public string affirmer;
+        public string affirmerLastName;
+        public string dateOfStatement;
+        public string teachers;
+        public Ticket(string educationalInstitution, string commission, string protocolNumber, string date,
+           string chairman, string specialityNumber, string examtype, string module, string exam,
+           string groupsNumber, string semester, string affirmer, string affirmerLastName,
+           string dateOfStatement, string teachers)
+        {
+            this.educationalInstitution = educationalInstitution;
+            this.commission = commission;
+            this.protocolNumber = protocolNumber;
+            this.date = date;
+            this.chairman = chairman;
+            this.specialityNumber = specialityNumber;
+            this.examtype = examtype;
+            this.module = module;
+            this.exam = exam;
+            this.groupsNumber = groupsNumber;
+            this.semester = semester;
+            this.affirmer = affirmer;
+            this.affirmerLastName = affirmerLastName;
+            this.dateOfStatement = dateOfStatement;
+            this.teachers = teachers;
+        }
+    }
+}
+Program.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    internal static class Program
+    {
+        /// <summary>
+        /// Главная точка входа для приложения.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Form1());
+        }
+    }
+}
+Form1.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+
+            InitializeComponent();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Form2 form2 = new Form2();
+            form2.Owner = this;
+            this.Visible = false;
+            form2.Show();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            Settings settings = new Settings();
+            settings.Owner = this;
+            this.Visible = false;
+            settings.ShowDialog();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            Style.MakeStyle(this);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            DatabaseManagerForm databaseManagerForm = new DatabaseManagerForm();
+            databaseManagerForm.Owner = this;
+            this.Visible = false;
+            databaseManagerForm.ShowDialog();
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            Information information = new Information();
+            information.Owner = this;
+            this.Visible = false;
+            information.ShowDialog();
+        }
+    }
+}
+Form2.cs
+using DocumentFormat.OpenXml.Packaging;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+using System.Resources;
+using System.IO;
+using DocumentFormat.OpenXml.Drawing;
+
+namespace Exam_Tickets
+{
+    public partial class Form2 : Form
+    {
+        UserControl1 userControl1 = new UserControl1();
+        UserControl2 userControl2 = new UserControl2();
+        UserControl3 userControl3;
+        UserControl4 userControl4 = new UserControl4();
+        UserControl5 userControl5 = new UserControl5();
+        static UserControl6 userControl6 = new UserControl6();
+        UserControl7 userControl7;
+        public string ConnectionString { get; } = "Data Source=KOSTYA\\SQLEXPRESS;Initial Catalog=ExamTicketsDB;Integrated Security=True;";
+        public Form2()
+        {
+            InitializeComponent();
+            Controls.Add(userControl1);
+            userControl3 = new UserControl3(this);
+            userControl7 = new UserControl7(userControl6, this);
+        }
+        int controlnumber = 0;
+        private void Form2_Load(object sender, EventArgs e)
+        {
+            Style.MakeStyle(this);
+        }
+        public void NotifySubjectChanged(int subjectId)
+        {
+            if (subjectId > 0)
+            {
+                userControl5.LoadTeachersForSubject(subjectId, this.ConnectionString);
+            }
+            else
+            {
+                userControl5.ClearTeachersList();
+            }
+        }
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if (controlnumber == 0)
+            {
+                DialogResult result = MessageBox.Show(
+                "Вы точно хотите выйти в главное меню? Все данные будут стёрты!",
+                "Предупреждение",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button1,
+                MessageBoxOptions.DefaultDesktopOnly);
+
+                if (result == DialogResult.Yes)
+                {
+                    this.Close();
+                    this.Owner.Visible = true;
+                }
+                if (result == DialogResult.No)
+                {
+
+                }
+            }
+            else
+            {
+                controlnumber--;
+            }
+
+            switch (controlnumber)
+            {
+                case 1:
+                    Controls.Remove(userControl2);
+                    Controls.Remove(userControl3);
+                    Controls.Remove(userControl4);
+                    Controls.Remove(userControl5);
+                    Controls.Remove(userControl6);
+                    Controls.Add(userControl1);
+                    break;
+                case 2:
+                    Controls.Remove(userControl1);
+                    Controls.Remove(userControl3);
+                    Controls.Remove(userControl4);
+                    Controls.Remove(userControl5);
+                    Controls.Remove (userControl6);
+                    Controls.Add(userControl2);
+                    break;
+                case 3:
+                    Controls.Remove(userControl1);
+                    Controls.Remove(userControl2);
+                    Controls.Remove(userControl4);
+                    Controls.Remove(userControl5);
+                    Controls.Remove(userControl6);
+                    Controls.Add(userControl3);
+                    break;
+                case 4:
+                    Controls.Remove(userControl1);
+                    Controls.Remove(userControl2);
+                    Controls.Remove(userControl3);
+                    Controls.Remove(userControl5);
+                    Controls.Remove(userControl6);
+                    Controls.Add(userControl4);
+                    break;
+                case 5:
+                    Controls.Remove(userControl1);
+                    Controls.Remove(userControl2);
+                    Controls.Remove(userControl3);
+                    Controls.Remove(userControl4);
+                    Controls.Remove(userControl6);
+                    Controls.Add(userControl5);
+                    break;
+                case 6:
+                    Controls.Remove(userControl1);
+                    Controls.Remove(userControl2);
+                    Controls.Remove(userControl3);
+                    Controls.Remove(userControl4);
+                    Controls.Remove(userControl5);
+                    Controls.Add(userControl6);
+                    break;
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (controlnumber == 6)
+                {
+                    DialogResult result = MessageBox.Show(
+                    "Перейти к созданию билетов?",
+                    "Предупреждение",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.DefaultDesktopOnly);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        if (AreAllFieldsFilled(userControl2) && AreAllFieldsFilled(userControl3) && AreAllFieldsFilled(userControl4) && AreAllFieldsFilled(userControl5) && AreAllFieldsFilled(userControl6))
+                        {
+                            Controls.Remove(userControl1);
+                            Controls.Remove(userControl2);
+                            Controls.Remove(userControl3);
+                            Controls.Remove(userControl4);
+                            Controls.Remove(userControl5);
+                            Controls.Remove(userControl6);
+                            Controls.Add(userControl7);
+                            userControl7.BringToFront();
+                            button1.Visible = false;
+                            button2.Visible = false;
+                            this.Size = new Size(582, 527);
+                            controlnumber = 0;
+                        }
+                        else
+                        {
+                            MessageBox.Show("Не все поля заполнены");
+                        }
+                    }
+                    if (result == DialogResult.No)
+                    {
+
+                    }
+                }
+                else
+                {
+                    controlnumber++;
+                }
+
+                switch (controlnumber)
+                {
+                    case 1:
+                        Controls.Remove(userControl2);
+                        Controls.Remove(userControl3);
+                        Controls.Remove(userControl4);
+                        Controls.Remove(userControl5);
+                        Controls.Add(userControl1);
+                        break;
+                    case 2:
+                        Controls.Remove(userControl1);
+                        Controls.Remove(userControl3);
+                        Controls.Remove(userControl4);
+                        Controls.Remove(userControl5);
+                        Controls.Add(userControl2);
+                        break;
+                    case 3:
+                        Controls.Remove(userControl1);
+                        Controls.Remove(userControl2);
+                        Controls.Remove(userControl4);
+                        Controls.Remove(userControl5);
+                        Controls.Add(userControl3);
+                        break;
+                    case 4:
+                        Controls.Remove(userControl1);
+                        Controls.Remove(userControl2);
+                        Controls.Remove(userControl3);
+                        Controls.Remove(userControl5);
+                        Controls.Add(userControl4);
+                        break;
+                    case 5:
+                        Controls.Remove(userControl1);
+                        Controls.Remove(userControl2);
+                        Controls.Remove(userControl3);
+                        Controls.Remove(userControl4);
+                        Controls.Remove(userControl6);
+                        Controls.Add(userControl5);
+                        break;
+                    case 6:
+                        Controls.Remove(userControl1);
+                        Controls.Remove(userControl2);
+                        Controls.Remove(userControl3);
+                        Controls.Remove(userControl4);
+                        Controls.Remove(userControl5);
+                        Controls.Add(userControl6);
+                        break;
+                }
+            }catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+        private bool AreAllFieldsFilled(UserControl userControl)
+        {
+            
+            foreach (Control control in userControl.Controls)
+            {
+              
+                if (control is TextBox textBox)
+                {
+                    if (textBox.Name == "TypeTextBox") 
+                    {
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(textBox.Text))
+                    {
+                        return false; 
+                    }
+                }
+
+                
+                if (control is ComboBox comboBox)
+                {
+                   
+                    if (comboBox.SelectedIndex == -1)
+                    {
+                        return false;
+                    }
+                }
+
+          
+                if (control is DateTimePicker dateTimePicker)
+                {
+                    if (string.IsNullOrWhiteSpace(dateTimePicker.Text))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true; 
+        }
+
+        private void Form2_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (userControl7.close != true)
+            {
+                DialogResult result = MessageBox.Show(
+                    "Вы точно хотите выйти в главное меню? Все данные будут стёрты!",
+                    "Предупреждение",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.DefaultDesktopOnly);
+
+                if (result == DialogResult.Yes)
+                {
+                    this.Owner.Visible = true;
+                }
+                if (result == DialogResult.No)
+                {
+                    e.Cancel = true;
+                }
+            }
+            else
+            {
+                this.Owner.Visible = true;
+            }
+        }
+        static string educationalinstitution = "МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ\r\nфедеральное государственное автономное образовательное учреждение высшего образования\r\n«Санкт-Петербургский политехнический университет Петра Великого»\r\n(ФГАОУ ВО «СПбПУ»)\r\nИнститут среднего профессионального образования \r\n";
+        static string commission;
+        static string protocolnumber;
+        static string date;
+        static string chairman;
+        static string specialitynumber;
+        static string examtype;
+        static string module;
+        static string exam;
+        static string groupsnumber;
+        static string semester;
+        static string affirmer;
+        static string afirmerlastname;
+        static string dateofstatement;
+        static string numberofquestions;
+        static string teachers;
+        static int ticketNumber;
+        //usercontrol1
+        public static string Educationalinstitution
+        {
+            get
+            {
+                return educationalinstitution;
+            }
+            set
+            {
+                educationalinstitution = value;
+            }
+        }
+        //usercontrol2
+        public static string Commission
+        {
+            get
+            {
+                return commission;
+            }
+            set
+            {
+                commission = value;
+            }
+        }
+        public static string Protocolnumber
+        {
+            get
+            {
+                return protocolnumber;
+            }
+            set
+            {
+                protocolnumber = value;
+            }
+        }
+        public static string Date
+        {
+            get
+            {
+                return date;
+            }
+            set
+            {
+                date = value;
+            }
+        }
+        public static string Chairman
+        {
+            get
+            {
+                return chairman;
+            }
+            set
+            {
+                chairman = value;
+            }
+        }
+        //usercontrol3
+        public static string Specialitynumber
+        {
+            get
+            {
+                return specialitynumber;
+            }
+            set
+            {
+                specialitynumber = value;
+            }
+        }
+        public static string Examtype
+        {
+            get
+            {
+                return examtype;
+            }
+            set
+            {
+                examtype = value;
+            }
+        }
+        public static string Module
+        {
+            get
+            {
+                return module;
+            }
+            set
+            {
+                module = value;
+            }
+        }
+        public static string Exam
+        {
+            get
+            {
+                return exam;
+            }
+            set
+            {
+                exam = value;
+            }
+        }
+        public static string Groupsnumber
+        {
+            get
+            {
+                return groupsnumber;
+            }
+            set
+            {
+                groupsnumber = value;
+            }
+        }
+        public static string Semester
+        {
+            get
+            {
+                return semester;
+            }
+            set
+            {
+                semester = value;
+            }
+        }
+        //usercontrol4
+        public static string Affirmer
+        {
+            get
+            {
+                return affirmer;
+            }
+            set
+            {
+                affirmer = value;
+            }
+        }
+        public static string Afirmerlastname
+        {
+            get
+            {
+                return afirmerlastname;
+            }
+            set
+            {
+                afirmerlastname = value;
+            }
+        }
+        public static string Dateofstatement
+        {
+            get
+            {
+                return dateofstatement;
+            }
+            set
+            {
+                dateofstatement = value;
+            }
+        }
+        //usercontrol5
+        public static string Numberofquestions
+        {
+            get
+            {
+                return numberofquestions;
+            }
+            set
+            {
+                numberofquestions = value;
+            }
+        }
+        public static string Teachers
+        {
+            get
+            {
+                return teachers;
+            }
+            set
+            {
+                teachers = value;
+            }
+        }
+        //usercontrol6
+        public static int TicketNumber
+        {
+            get
+            {
+                return ticketNumber;
+            }
+            set
+            {
+                ticketNumber = value;
+            }
+        }
+    }
+}
+UserControl1.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class UserControl1 : UserControl
+    {
+        public UserControl1()
+        {
+            InitializeComponent();
+            if (textBox1.Text == null)
+                Form2.Educationalinstitution = "МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ\r\nфедеральное государственное автономное образовательное учреждение высшего образования\r\n«Санкт-Петербургский политехнический университет Петра Великого»\r\n(ФГАОУ ВО «СПбПУ»)\r\nИнститут среднего профессионального образования \r\n";
+        }
+
+        private void UserControl1_Load(object sender, EventArgs e)
+        {
+            richTextBox1.Text = $"МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ\r\nфедеральное государственное автономное образовательное учреждение высшего образования\r\n«Санкт-Петербургский политехнический университет Петра Великого»\r\n(ФГАОУ ВО «СПбПУ»)\r\nИнститут среднего профессионального образования \r\n";
+            richTextBox1.SelectAll();
+
+            // Устанавливаем выравнивание по центру
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            if (textBox1.Text != null)
+            {
+                Form2.Educationalinstitution = textBox1.Text;
+                richTextBox1.Text = textBox1.Text;
+            }
+            else
+            {
+                Form2.Educationalinstitution = "МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ\r\nфедеральное государственное автономное образовательное учреждение высшего образования\r\n«Санкт-Петербургский политехнический университет Петра Великого»\r\n(ФГАОУ ВО «СПбПУ»)\r\nИнститут среднего профессионального образования \r\n";
+                richTextBox1.Text = $"МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ\r\nфедеральное государственное автономное образовательное учреждение высшего образования\r\n«Санкт-Петербургский политехнический университет Петра Великого»\r\n(ФГАОУ ВО «СПбПУ»)\r\nИнститут среднего профессионального образования \r\n";
+            }
+            richTextBox1.SelectAll();
+
+            // Устанавливаем выравнивание по центру
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+        }
+    }
+
+        
+}
+UserControl2.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class UserControl2 : UserControl
+    {
+        public UserControl2()
+        {
+            InitializeComponent();
+        }
+        Dictionary <string, string> vrd = new Dictionary<string, string>();
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            vrd["commission"]= textBox1.Text ; 
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF2UC, vrd, richTextBox1);
+            Form2.Commission = textBox1.Text;
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            vrd["protocolnumber"] = textBox2.Text;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF2UC, vrd, richTextBox1);
+            Form2.Protocolnumber = textBox2.Text;
+        }
+
+        private void dateTimePicker1_ValueChanged(object sender, EventArgs e)
+        {
+            vrd["date"] = dateTimePicker1.Value.ToShortDateString();
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF2UC, vrd, richTextBox1);
+            Form2.Date = dateTimePicker1.Value.ToShortDateString();
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+            vrd["chairman"] = textBox4.Text;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF2UC, vrd, richTextBox1);
+            Form2.Chairman = textBox4.Text;
+        }
+
+        private void UserControl2_Load(object sender, EventArgs e)
+        {
+            vrd["date"] = "";
+            vrd["commission"] = "";
+            vrd["protocolnumber"] = "";
+            vrd["chairman"] = "";
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF2UC, vrd, richTextBox1);
+        }
+    }
+}
+UserControl3.cs
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.SqlClient;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class UserControl3 : UserControl
+    {
+        private string connectionString = "Data Source=KOSTYA\\SQLEXPRESS;Initial Catalog=ExamTicketsDB;Integrated Security=True;";
+        private Form2 _form2;
+        public UserControl3(Form2 parent)
+        {
+            _form2 = parent;
+            InitializeComponent();
+            LoadSpecialtyIntoComboBox(comboBox1);
+            InitializeDependentComboBoxes();
+            if (comboBox2.Items.Count == 0 && comboBox2.DataSource == null) 
+            {
+                comboBox2.Items.Add("Сначала выберите специальность");
+                if (comboBox2.Items.Count > 0) comboBox2.SelectedIndex = 0;
+            }
+            if (comboBox3.Items.Count == 0 && comboBox3.DataSource == null)
+            {
+                comboBox3.Items.Add("Сначала выберите предмет");
+                if (comboBox3.Items.Count > 0) comboBox3.SelectedIndex = 0;
+            }
+        }
+        Dictionary<string, string> vrd = new Dictionary<string, string>();
+        private void InitializeDependentComboBoxes()
+        {
+            comboBox2.DataSource = null;
+            comboBox2.Items.Clear();
+            comboBox2.Enabled = false;
+            comboBox2.Text = ""; 
+            comboBox3.DataSource = null;
+            comboBox3.Items.Clear();
+            comboBox3.Enabled = false;
+            comboBox3.Text = "";
+            ClearGroupsList();
+        }
+      
+
+        private void UserControl3_Load(object sender, EventArgs e)
+        {
+            vrd["specialitynumber"] = "";
+            vrd["examtype"] = "";
+            vrd["module"] = "";
+            vrd["exam"] = "";
+            vrd["groupsnumber"] = "";
+            vrd["semester"] = "";
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+            TypeTextBox.Text = "";
+            Form2.Module = TypeTextBox.Text;
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedValue is int selectedSpecialtyID && selectedSpecialtyID > 0)
+            {
+                DataRowView drv = comboBox1.SelectedItem as DataRowView;
+                string specialtyNumberText = drv != null ? drv["SpecialtyNumber"].ToString() : comboBox1.Text;
+                Form2.Specialitynumber = specialtyNumberText;
+
+                vrd["specialitynumber"] = specialtyNumberText;
+                Form2.Specialitynumber = specialtyNumberText;
+
+                LoadSubjectIntoComboBox(comboBox2, selectedSpecialtyID);
+                LoadGroupsIntoCheckedListBox(selectedSpecialtyID);
+                comboBox2.Enabled = true;
+
+                comboBox3.DataSource = null;
+                comboBox3.Items.Clear();
+                comboBox3.Items.Add("Сначала выберите предмет");
+                comboBox3.SelectedIndex = 0;
+                comboBox3.Enabled = false;
+                vrd["semester"] = ""; 
+                Form2.Semester = "";
+            }
+            else
+            {
+                comboBox2.DataSource = null;
+                comboBox2.Items.Clear();
+                comboBox2.Items.Add("Сначала выберите специальность");
+                comboBox2.SelectedIndex = 0;
+                comboBox2.Enabled = false;
+
+                comboBox3.DataSource = null;
+                comboBox3.Items.Clear();
+                comboBox3.Items.Add("Сначала выберите предмет");
+                comboBox3.SelectedIndex = 0;
+                comboBox3.Enabled = false;
+
+                vrd["specialitynumber"] = "";
+                Form2.Specialitynumber = "";
+                vrd["exam"] = ""; 
+                Form2.Exam = "";
+                vrd["semester"] = "";
+                Form2.Groupsnumber = "";
+                Form2.Semester = "";
+                vrd["groupsnumber"] = "";
+                _form2.NotifySubjectChanged(0);
+            }
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+        }
+        private void LoadGroupsIntoCheckedListBox(int specialtyId)
+        {
+            checkedListBoxGroups.DataSource = null;
+            checkedListBoxGroups.Items.Clear();
+            Form2.Groupsnumber = ""; 
+            vrd["groupsnumber"] = "";
+
+            if (specialtyId <= 0)
+            {
+                checkedListBoxGroups.Enabled = false;
+                TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+                richTextBox1.SelectAll();
+                richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+                return;
+            }
+
+            checkedListBoxGroups.Enabled = true;
+            string query = "SELECT GroupID, GroupNumber FROM Groups WHERE SpecialtyID = @SpecialtyID ORDER BY GroupNumber";
+            DataTable table = new DataTable();
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SpecialtyID", specialtyId);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    adapter.Fill(table);
+                }
+
+                if (table.Rows.Count > 0)
+                {
+                    checkedListBoxGroups.DataSource = table;
+                    checkedListBoxGroups.DisplayMember = "GroupNumber";
+                    checkedListBoxGroups.ValueMember = "GroupID";
+                }
+                else
+                {
+                    checkedListBoxGroups.Items.Add("Нет групп для этой специальности");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки групп: {ex.Message}", "Ошибка БД", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                checkedListBoxGroups.Enabled = false;
+            }
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+        }
+
+        private void ClearGroupsList()
+        {
+            if (checkedListBoxGroups != null) 
+            {
+                checkedListBoxGroups.DataSource = null;
+                checkedListBoxGroups.Items.Clear();
+                for (int i = 0; i < checkedListBoxGroups.Items.Count; i++) 
+                {
+                    checkedListBoxGroups.SetItemChecked(i, false);
+                }
+                checkedListBoxGroups.Enabled = false;
+            }
+            Form2.Groupsnumber = "";
+            vrd["groupsnumber"] = "";
+        }
+        private void UpdateGroupsString()
+        {
+            List<string> selectedGroupNumbers = new List<string>();
+            if (checkedListBoxGroups.DataSource != null)
+            {
+                foreach (var item in checkedListBoxGroups.CheckedItems)
+                {
+                    DataRowView drv = item as DataRowView;
+                    if (drv != null)
+                    {
+                        selectedGroupNumbers.Add(drv["GroupNumber"].ToString());
+                    }
+                }
+            }
+            else 
+            {
+                foreach (object item in checkedListBoxGroups.CheckedItems)
+                {
+                    if (item is DataRowView dataRowViewItem) 
+                    {
+                        selectedGroupNumbers.Add(dataRowViewItem["GroupNumber"].ToString());
+                    }
+                    else
+                    {
+                        selectedGroupNumbers.Add(item.ToString());
+                    }
+                }
+            }
+
+            string groupsText = string.Join(", ", selectedGroupNumbers);
+            Form2.Groupsnumber = groupsText;
+            vrd["groupsnumber"] = groupsText;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+        }
+
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int currentSubjectId = 0;
+            if (comboBox2.SelectedValue is int selectedSubjectID && selectedSubjectID > 0)
+            {
+                DataRowView drv = comboBox2.SelectedItem as DataRowView;
+                string subjectNameText = drv != null ? drv["SubjectName"].ToString() : comboBox2.Text;
+
+                vrd["exam"] = subjectNameText; 
+                Form2.Exam = subjectNameText;
+                currentSubjectId = selectedSubjectID;
+                LoadSemesterIntoComboBox(comboBox3, selectedSubjectID);
+
+                LoadSemesterIntoComboBox(comboBox3, selectedSubjectID); 
+                comboBox3.Enabled = true;
+            }
+            else
+            {
+                comboBox3.DataSource = null;
+                comboBox3.Items.Clear();
+                comboBox3.Items.Add("Сначала выберите предмет");
+                comboBox3.SelectedIndex = 0;
+                comboBox3.Enabled = false;
+                vrd["exam"] = "";
+                Form2.Exam = "";
+                vrd["semester"] = ""; 
+                Form2.Semester = "";
+            }
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+            if (_form2 != null)
+            {
+                _form2.NotifySubjectChanged(currentSubjectId); 
+            }
+
+            if (currentSubjectId <= 0)
+            {
+                Form2.Semester = "";
+                vrd["semester"] = "";
+            }
+        }
+
+        private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox3.SelectedItem != null && comboBox3.SelectedValue != null) 
+            {
+                string semesterText = comboBox3.Text; 
+                vrd["semester"] = semesterText;
+                Form2.Semester = semesterText;
+            }
+            else
+            {
+                vrd["semester"] = "";
+                Form2.Semester = "";
+            }
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+        }
+        private void LoadSpecialtyIntoComboBox(ComboBox cmb)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT SpecialtyID, SpecialtyName, SpecialtyNumber FROM Specialties ORDER BY SpecialtyName";
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+                    DataTable table = new DataTable();
+                    adapter.Fill(table);
+
+                    cmb.DisplayMember = "SpecialtyNumber";
+                    cmb.ValueMember = "SpecialtyID";
+                    cmb.DataSource = table;
+
+                    if (table.Rows.Count > 0)
+                    {
+                        cmb.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        cmb.Text = "Нет специальностей";
+                        cmb.Enabled = false;
+                        InitializeDependentComboBoxes();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки специальностей: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    cmb.Enabled = false;
+                    InitializeDependentComboBoxes();
+                }
+            }
+        }
+
+        private void LoadSubjectIntoComboBox(ComboBox cmb, int specialtyId)
+        {
+            cmb.DataSource = null;
+            cmb.Items.Clear();
+            cmb.Enabled = true; 
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT SubjectID, SubjectName, Semester FROM Subjects WHERE SpecialtyID = @SpecialtyID ORDER BY SubjectName";
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+                    adapter.SelectCommand.Parameters.AddWithValue("@SpecialtyID", specialtyId);
+                    DataTable table = new DataTable();
+                    adapter.Fill(table);
+
+                    if (table.Rows.Count > 0)
+                    {
+                        table.Columns.Add("DisplayMemberWithSemester", typeof(string));
+                        foreach (DataRow row in table.Rows)
+                        {
+                            row["DisplayMemberWithSemester"] = $"{row["SubjectName"]} ({row["Semester"]})";
+                        }
+                        cmb.DisplayMember = "DisplayMemberWithSemester";
+                        cmb.ValueMember = "SubjectID";
+                        cmb.DataSource = table;
+                        cmb.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        cmb.Text = "Нет предметов для спец-ти";
+                        cmb.Enabled = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки предметов: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    cmb.Enabled = false;
+                }
+            }
+        }
+
+        private void LoadSemesterIntoComboBox(ComboBox cmb, int subjectId)
+        {
+            cmb.DataSource = null;
+            cmb.Items.Clear();
+            cmb.Enabled = true; 
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT Semester FROM Subjects WHERE SubjectID = @SubjectID";
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+                    adapter.SelectCommand.Parameters.AddWithValue("@SubjectID", subjectId);
+                    DataTable table = new DataTable(); 
+                    adapter.Fill(table);
+
+                    if (table.Rows.Count > 0)
+                    {
+                        DataTable semesterDisplayTable = new DataTable();
+                        semesterDisplayTable.Columns.Add("SemesterValue", typeof(int));
+                        semesterDisplayTable.Columns.Add("SemesterDisplay", typeof(string));
+
+                        foreach (DataRow row in table.Rows) 
+                        {
+                            semesterDisplayTable.Rows.Add(Convert.ToInt32(row["Semester"]), row["Semester"].ToString());
+                        }
+
+                        cmb.DisplayMember = "SemesterDisplay";
+                        cmb.ValueMember = "SemesterValue";
+                        cmb.DataSource = semesterDisplayTable;
+                        if (semesterDisplayTable.Rows.Count > 0) cmb.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        cmb.Text = "Семестр не найден"; 
+                        cmb.Enabled = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки семестров: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    cmb.Enabled = false;
+                }
+            }
+        }
+
+        private void comboBox4_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox4.SelectedIndex == 0)
+            {
+                TypeTextBox.Visible = false;
+                TypeTextBox.Text = "";
+                Form2.Module = TypeTextBox.Text;
+            }
+            else if (comboBox4.SelectedIndex == 1)
+            {
+                TypeTextBox.Visible = true;
+            }
+            vrd["examtype"] = comboBox4.Text;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+            Form2.Examtype = comboBox4.Text;
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            vrd["module"] = TypeTextBox.Text;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF3UC, vrd, richTextBox1);
+            richTextBox1.SelectAll();
+            richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
+            Form2.Module = TypeTextBox.Text;
+        }
+
+        private void checkedListBoxGroups_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            this.BeginInvoke(new MethodInvoker(UpdateGroupsString));
+        }
+    }
+}
+UserControl4.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class UserControl4 : UserControl
+    {
+        public UserControl4()
+        {
+            InitializeComponent();  
+        }
+        Dictionary<string, string> vrd = new Dictionary<string, string>();
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            vrd["affirmer"] = textBox1.Text;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF4UC, vrd, richTextBox1);
+            Form2.Affirmer = textBox1.Text;
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            vrd["afirmerlastname"] = textBox2.Text;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF4UC, vrd, richTextBox1);
+            Form2.Afirmerlastname = textBox2.Text;
+        }
+
+        private void dateTimePicker1_ValueChanged(object sender, EventArgs e)
+        {
+            vrd["dateofstatement"] = dateTimePicker1.Value.ToShortDateString();
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF4UC, vrd, richTextBox1);
+            Form2.Dateofstatement = dateTimePicker1.Value.ToShortDateString();
+        }
+
+        private void UserControl4_Load(object sender, EventArgs e)
+        {
+            vrd["affirmer"] = "";
+            vrd["afirmerlastname"] = "";
+            vrd["dateofstatement"] = "";
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF4UC, vrd, richTextBox1);
+        }
+    }
+}
+UserControl5.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.SqlClient;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class UserControl5 : UserControl
+    {
+        public UserControl5()
+        {
+            InitializeComponent();
+        }
+        Dictionary<string, string> vrd = new Dictionary<string, string>();
+        private string _currentConnectionString;
+        public void LoadTeachersForSubject(int subjectId, string connectionString)
+        {
+            _currentConnectionString = connectionString;
+            Debug.WriteLine($"UserControl5.LoadTeachersForSubject вызван с SubjectID: {subjectId}");
+
+            checkedListBoxTeachers.DataSource = null;
+            checkedListBoxTeachers.Items.Clear();
+
+            Form2.Teachers = "";
+            vrd["teachers"] = "";
+
+            if (subjectId <= 0)
+            {
+                checkedListBoxTeachers.Enabled = false;
+                checkedListBoxTeachers.Items.Add("Выберите предмет"); 
+                if (checkedListBoxTeachers.Items.Count > 0) checkedListBoxTeachers.SelectedIndex = 0;
+                TicketGenerator.UpdateRichTextBox(Properties.Resources.TF5UC, vrd, richTextBox1); 
+                return;
+            }
+
+            checkedListBoxTeachers.Enabled = true;
+            string query = "SELECT TeacherID, FullName FROM Teachers WHERE SubjectID = @SubjectID ORDER BY FullName";
+            DataTable table = new DataTable();
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_currentConnectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SubjectID", subjectId);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    adapter.Fill(table); 
+                }
+
+                if (table.Rows.Count > 0)
+                {
+                    Debug.WriteLine($"Найдено преподавателей: {table.Rows.Count} для SubjectID: {subjectId}");
+                    checkedListBoxTeachers.DataSource = table;
+                    checkedListBoxTeachers.DisplayMember = "FullName";
+                    checkedListBoxTeachers.ValueMember = "TeacherID";
+                }
+                else
+                {
+                    Debug.WriteLine($"Преподаватели для SubjectID: {subjectId} не найдены.");
+
+                    checkedListBoxTeachers.Items.Add("Для этого предмета нет преподавателей");
+
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки преподавателей для предмета: {ex.Message}", "Ошибка БД", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Debug.WriteLine($"Ошибка SQL при загрузке преподавателей для SubjectID: {subjectId}: {ex.Message}");
+                checkedListBoxTeachers.Enabled = false;
+            }
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF5UC, vrd, richTextBox1); 
+        }
+        public void ClearTeachersList()
+        {
+            checkedListBoxTeachers.DataSource = null;
+            checkedListBoxTeachers.Items.Clear();
+            checkedListBoxTeachers.Enabled = false;
+            Form2.Teachers = "";
+            vrd["teachers"] = "";
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF5UC, vrd, richTextBox1);
+        }
+        
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedIndex == 1)
+            {
+                vrd["question"] = "Вопрос 3";
+            }
+            else if (comboBox1.SelectedIndex == 2)
+            {
+                vrd["question"] = "Задача";
+            }
+            else
+            {
+                vrd["question"] = "";
+            }
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF5UC, vrd, richTextBox1);
+            Form2.Numberofquestions = comboBox1.SelectedItem.ToString();
+        }
+        private void UserControl5_Load(object sender, EventArgs e)
+        {
+            vrd["question"] = "";
+            vrd["teachers"] = "";
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF5UC, vrd, richTextBox1);
+            comboBox1.SelectedIndex = 0;
+            Form2.Numberofquestions = "2 вопроса";
+            ClearTeachersList();
+        }
+
+        private void checkedListBoxTeachers_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            this.BeginInvoke(new MethodInvoker(UpdateTeachersString));
+        }
+        private void UpdateTeachersString()
+        {
+            List<string> selectedTeacherNames = new List<string>();
+            foreach (var item in checkedListBoxTeachers.CheckedItems)
+            {
+                DataRowView drv = item as DataRowView;
+                if (drv != null)
+                {
+                    selectedTeacherNames.Add(drv["FullName"].ToString());
+                }
+            }
+            string teachersFullNames = string.Join(", ", selectedTeacherNames);
+            Form2.Teachers = teachersFullNames;
+            vrd["teachers"] = teachersFullNames;
+            TicketGenerator.UpdateRichTextBox(Properties.Resources.TF5UC, vrd, richTextBox1);
+        }
+    }
+}
+UserControl6.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class UserControl6 : UserControl
+    {
+        public UserControl6()
+        {
+            InitializeComponent();
+            
+        }
+        public List<string> requiredMarkers = new List<string>();
+        public Dictionary<string, List<string>> Questions = new Dictionary<string, List<string>>();
+        public string SourceQuestionFilePath { get; private set; }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            // Открытие окна выбора файла
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Title = "Выберите файл с вопросами",
+                Filter = "Документы Word (*.docx)|*.docx",
+                Multiselect = false
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string selectedFilePath = openFileDialog.FileName;
+
+                // Определяем, какие маркеры должны быть в файле
+                
+
+                if (Form2.Numberofquestions == "2 вопроса")
+                    requiredMarkers = new List<string> { "Вопрос 1", "Вопрос 2" };
+                else if (Form2.Numberofquestions == "3 вопроса")
+                    requiredMarkers = new List<string> { "Вопрос 1", "Вопрос 2", "Вопрос 3" };
+                else if (Form2.Numberofquestions == "2 вопроса и задача")
+                    requiredMarkers = new List<string> { "Вопрос 1", "Вопрос 2", "Задача" };
+                else
+                {
+                    MessageBox.Show("Выберите корректный тип билетов!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Проверка соответствия файла шаблону
+                if (!TicketGenerator.ValidateQuestionFile(selectedFilePath, requiredMarkers))
+                {
+                    MessageBox.Show("Файл не соответствует выбранному шаблону!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                else
+                {
+                    textBox1.Text = selectedFilePath; 
+                    this.SourceQuestionFilePath = selectedFilePath;
+                    Questions = TicketGenerator.ExtractQuestions(selectedFilePath, requiredMarkers);
+                    MessageBox.Show("Файл успешно загружен!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+            if (textBox1 != null)
+            {
+                numericUpDown1.Maximum = TicketGenerator.CalculateMaxTickets(Questions, requiredMarkers);
+                Form2.TicketNumber = int.Parse(numericUpDown1.Value.ToString());
+            }
+            else
+            {
+                numericUpDown1.Value = 1;
+                MessageBox.Show("Для выбора количества билетов выберите файл с вопросами!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+        }
+
+        private void UserControl6_Load(object sender, EventArgs e)
+        {
+            textBox1.Text = "";
+            numericUpDown1.Value = 1;
+        }
+    }
+
+}
+UserControl7.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO;
+using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
+using Aspose.Words;
+using System.Diagnostics;
+using System.Data.SqlClient;
+
+namespace Exam_Tickets
+{
+    public partial class UserControl7 : UserControl
+    {
+        private UserControl6 userControl6;
+        byte[] fileContent;
+        private Form2 _form2;
+        public bool close = false;
+        public UserControl7(UserControl6 control6, Form2 form2)
+        {
+            InitializeComponent();
+            this.Dock = DockStyle.Fill;
+            userControl6 = control6;
+            _form2 = form2;
+        }
+
+        private void UserControl7_Load(object sender, EventArgs e)
+        {
+            comboBox1.SelectedIndex = 0;
+        }
+
+        private void CreateButton_Click(object sender, EventArgs e)
+        {
+            Ticket ticket = new Ticket(Form2.Educationalinstitution, Form2.Commission, Form2.Protocolnumber, Form2.Date, Form2.Chairman, Form2.Specialitynumber, Form2.Examtype, Form2.Module, Form2.Exam, Form2.Groupsnumber, Form2.Semester, Form2.Affirmer, Form2.Afirmerlastname, Form2.Dateofstatement, Form2.Teachers);
+            // Сначала генерируем шаблон с подстановками
+            string filledTemplatePath = TicketGenerator.FillTemplate(ticket);
+
+            // Генерируем билеты с этим шаблоном
+            fileContent = TicketGenerator.GenerateTicketsDocument(
+                TicketGenerator.GenerateTickets(userControl6.Questions, userControl6.requiredMarkers, Form2.TicketNumber),
+                filledTemplatePath
+            );
+
+            SaveButton.Enabled = true;
+            PreviewButton.Enabled = true;
+            PrintButton.Enabled = true;
+        }
+
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Title = "Сохранить файл билетов",
+                Filter = "Документ Word (*.docx)|*.docx|PDF файлы (*.pdf)|*.pdf", // Добавляем фильтр для PDF
+            };
+
+            // Ожидаем, что пользователь выберет путь и нажмет "Сохранить"
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string savedTicketFilePath = saveFileDialog.FileName;
+                // Проверяем, в какой формат сохранить
+                string selectedExtension = Path.GetExtension(saveFileDialog.FileName).ToLower();
+
+
+                if (comboBox1.SelectedIndex == 0)
+                {
+                    // Сохраняем в формате DOCX
+                    File.WriteAllBytes(saveFileDialog.FileName, fileContent);
+                    MessageBox.Show("Файл успешно сохранён в формате DOCX!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else if (comboBox1.SelectedIndex == 1)
+                {
+                    // Конвертируем в PDF и сохраняем
+                    string pdfFilePath = saveFileDialog.FileName;
+                    ConvertDocxToPdfFromMemory(fileContent, pdfFilePath);
+                    MessageBox.Show("Файл успешно сохранён в формате PDF!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+            
+            // --- Сохранение в БД ---
+            string connectionString = _form2.ConnectionString; // Используем ConnectionString из экземпляра _form2
+
+            // 1. Получаем/создаем ID для файла вопросов
+            string sourceQuestionFilePath = userControl6.SourceQuestionFilePath;
+            int? questionFileId = null;
+            if (!string.IsNullOrEmpty(sourceQuestionFilePath))
+            {
+                questionFileId = DatabaseHelper.GetOrCreateDocumentAndReturnId(
+                    sourceQuestionFilePath, "QuestionDocuments", "QuestionID", connectionString);
+            }
+            else
+            {
+                MessageBox.Show("Путь к файлу вопросов не указан. Запись события экзамена невозможна.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 2. Получаем/создаем ID для сгенерированного файла билетов
+            int? ticketFileId = DatabaseHelper.GetOrCreateDocumentAndReturnId(
+                savedTicketFilePath, "TicketDocuments", "TicketID", connectionString);
+
+            if (!questionFileId.HasValue || !ticketFileId.HasValue)
+            {
+                MessageBox.Show("Не удалось зарегистрировать файлы вопросов или билетов в базе данных. Запись события экзамена невозможна.", "Ошибка БД", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 3. Получаем ID специальности из Form2.specialitynumber (текст)
+            string specialtyNumberText = Form2.Specialitynumber;
+            int? specialtyId = null;
+            if (!string.IsNullOrWhiteSpace(specialtyNumberText))
+            {
+                specialtyId = DatabaseHelper.GetSpecialtyIdByNumber(specialtyNumberText, connectionString);
+            }
+            if (!specialtyId.HasValue)
+            {
+                MessageBox.Show($"Не удалось найти специальность по номеру '{specialtyNumberText}'. Запись события экзамена невозможна.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 4. Получаем ID предмета из Form2.exam (текст) и specialtyId
+            string subjectNameText = Form2.Exam; // Form2.Exam хранит чистое имя предмета
+            int? subjectId = null;
+            if (!string.IsNullOrWhiteSpace(subjectNameText))
+            {
+                subjectId = DatabaseHelper.GetSubjectIdByNameAndSpecialtyId(subjectNameText, specialtyId.Value, connectionString);
+            }
+            if (!subjectId.HasValue)
+            {
+                MessageBox.Show($"Не удалось найти предмет '{subjectNameText}' для выбранной специальности. Запись события экзамена невозможна.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+                // 5. Обработка преподавателей из Form2.teachers (текст)
+                string teachersString = Form2.Teachers; 
+                int? primaryTeacherId = null;
+
+                if (string.IsNullOrWhiteSpace(teachersString))
+                {
+                    MessageBox.Show("ФИО преподавателей не указано. Запись события экзамена невозможна.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                string[] teacherNames = teachersString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                                     .Select(name => name.Trim())
+                                                     .Where(name => !string.IsNullOrEmpty(name))
+                                                     .ToArray();
+
+                if (teacherNames.Length == 0)
+                {
+                    MessageBox.Show("Список преподавателей пуст после обработки. Укажите корректные ФИО.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                List<int> allTeacherIdsForThisSubject = new List<int>();
+                foreach (string name in teacherNames)
+                {
+                    int? currentTeacherId = DatabaseHelper.GetOrCreateTeacherAndReturnId(name, subjectId.Value, connectionString);
+                    if (currentTeacherId.HasValue)
+                    {
+                        allTeacherIdsForThisSubject.Add(currentTeacherId.Value);
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Проблема с обработкой преподавателя: {name} для предмета ID {subjectId.Value}");
+                    }
+                }
+
+                if (allTeacherIdsForThisSubject.Any())
+                {
+                    primaryTeacherId = allTeacherIdsForThisSubject.First();
+                }
+
+                if (!primaryTeacherId.HasValue)
+                {
+                    MessageBox.Show("Не удалось определить ID основного преподавателя для данного предмета. Проверьте список преподавателей и их привязку к предметам.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+
+                // 6. Дата экзамена
+                DateTime examDate = DateTime.Today;
+
+            // 7. Сохраняем запись в ExamEvents
+            bool examEventSaved = DatabaseHelper.SaveExamEvent(
+                subjectId.Value,
+                specialtyId.Value,
+                primaryTeacherId.Value,
+                questionFileId.Value,
+                ticketFileId.Value,
+                examDate,
+                connectionString
+            );
+
+            if (examEventSaved)
+            {
+                MessageBox.Show("Событие экзамена успешно добавлено в базу данных!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                close = true;
+            }
+            else
+            {
+                MessageBox.Show("Не удалось добавить событие экзамена в базу данных.", "Ошибка БД", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            // --- Конец сохранения в БД ---
+        }
+            else // Пользователь отменил SaveFileDialog
+            {
+                close = false;
+            }
+
+}
+
+        private void PreviewButton_Click(object sender, EventArgs e)
+        {
+            string tempFilePath = TicketGenerator.GenerateTemporaryDocument(fileContent);  // Предположим, что tickets — это список билетов, который у тебя уже есть
+
+            // Открываем файл с помощью стандартного приложения
+            try
+            {
+                Process.Start(tempFilePath); // Открываем временный файл с помощью установленного приложения
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void PrintButton_Click(object sender, EventArgs e)
+        {
+            TicketGenerator.PrintWordDocumentFromByteArray(fileContent);
+        }
+        // Метод для конвертации из DOCX (в памяти) в PDF
+        private void ConvertDocxToPdfFromMemory(byte[] docxContent, string outputPdfFilePath)
+        {
+            // Для конвертации нужно использовать библиотеки, такие как Aspose.Words или DinkToPdf
+            using (MemoryStream docStream = new MemoryStream(docxContent))
+            {
+                // Загружаем документ из потока в Aspose.Words
+                Document doc = new Document(docStream);
+
+                // Конвертируем и сохраняем в PDF
+                doc.Save(outputPdfFilePath, SaveFormat.Pdf);
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if (close == false)
+            {
+                DialogResult result = MessageBox.Show(
+                 "Вы точно хотите выйти в главное меню? Все данные будут стёрты!",
+                 "Предупреждение",
+                 MessageBoxButtons.YesNo,
+                 MessageBoxIcon.Information,
+                 MessageBoxDefaultButton.Button1,
+                 MessageBoxOptions.DefaultDesktopOnly);
+                close = true;
+
+                if (result == DialogResult.Yes)
+                {
+                    _form2.Owner.Visible = true;
+                    _form2.Close();
+                }
+                if (result == DialogResult.No)
+                {
+
+                }
+            }
+            else
+            {
+                _form2.Owner.Visible = true;
+                _form2.Close();
+                
+            }
+        }
+        
+    }
+}
+DatabaseManagerForm.cs
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Windows.Forms;
+using System.IO;
+using System.Diagnostics;
+
+namespace Exam_Tickets
+{
+    public partial class DatabaseManagerForm : Form
+    {
+        private string connectionString = "Data Source=Adclg1;Initial Catalog=ExamTicketsDB;Integrated Security=True;";
+
+        public DatabaseManagerForm()
+        {
+            InitializeComponent();
+            
+        }
+        private bool _specialtiesLoaded = false;
+        private bool _subjectsLoaded = false;
+        private bool _teachersLoaded = false;
+        private bool _examEventsLoaded = false;
+        private bool _questionDocumentsLoaded = false;
+        private bool _ticketDocumentsLoaded = false;
+        private bool _groupsLoaded = false;
+
+        private void DatabaseManagerForm_Load(object sender, EventArgs e)
+        {
+            LoadSpecialties();
+            Style.MakeStyle(this);
+            if (tabControl1.TabPages.Count > 0)
+            {
+                LoadDataForSelectedTab(tabControl1.SelectedTab);
+            }
+        }
+
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab != null)
+            {
+                LoadDataForSelectedTab(tabControl1.SelectedTab);
+            }
+        }
+        private void LoadDataForSelectedTab(TabPage selectedTab)
+        {
+            if (selectedTab == specialtiesTabPage && !_specialtiesLoaded) { LoadSpecialties(); _specialtiesLoaded = true; }
+            else if (selectedTab == subjectsTabPage && !_subjectsLoaded) { LoadSubjects(); _subjectsLoaded = true; }
+            else if (selectedTab == teachersTabPage && !_teachersLoaded) { LoadTeachers(); _teachersLoaded = true; }
+            else if (selectedTab == questionDocumentsTabPage && !_questionDocumentsLoaded) { LoadQuestionDocuments(); _questionDocumentsLoaded = true; }
+            else if (selectedTab == ticketDocumentsTabPage && !_ticketDocumentsLoaded) { LoadTicketDocuments(); _ticketDocumentsLoaded = true; }
+            else if (selectedTab == examEventsTabPage && !_examEventsLoaded) { LoadExamEvents(); _examEventsLoaded = true; }
+            else if (selectedTab == groupsTabPage && !_groupsLoaded) { LoadGroupsData(); _groupsLoaded = true; }
+        }
+        private void LoadData(string query, DataGridView dgv, Dictionary<string, string> columnHeaders, string dateColumnFormat = null, List<string> fileNameColumns = null)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+                    DataTable table = new DataTable();
+                    adapter.Fill(table);
+
+                    if (fileNameColumns != null)
+                    {
+                        foreach (string filePathColumnName in fileNameColumns)
+                        {
+                            if (table.Columns.Contains(filePathColumnName))
+                            {
+                                string displayColumnName = filePathColumnName + "Display";
+                                if (!table.Columns.Contains(displayColumnName)) 
+                                {
+                                    table.Columns.Add(displayColumnName, typeof(string));
+                                    foreach (DataRow row in table.Rows)
+                                    {
+                                        if (row[filePathColumnName] != DBNull.Value)
+                                        {
+                                            row[displayColumnName] = Path.GetFileName(row[filePathColumnName].ToString());
+                                        }
+                                        else
+                                        {
+                                            row[displayColumnName] = string.Empty;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
+                    dgv.DataSource = table;
+                    dgv.RowHeadersVisible = false;
+                    dgv.AllowUserToAddRows = false;
+                    dgv.AllowUserToDeleteRows = false;
+                    dgv.ReadOnly = true;
+                    dgv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+                    dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+                    foreach (DataGridViewColumn column in dgv.Columns)
+                    {
+                        if (columnHeaders.ContainsKey(column.Name))
+                        {
+                            if (string.IsNullOrEmpty(columnHeaders[column.Name]))
+                            {
+                                column.Visible = false;
+                            }
+                            else
+                            {
+                                column.HeaderText = columnHeaders[column.Name];
+                            }
+                        }
+                        else if (!column.Name.EndsWith("Display") && fileNameColumns != null && fileNameColumns.Contains(column.Name))
+                        {
+                            column.Visible = false;
+                        }
+
+                    }
+
+                    if (!string.IsNullOrEmpty(dateColumnFormat) && dgv.Columns.Contains(dateColumnFormat.Split(':')[0]))
+                    {
+                        string colName = dateColumnFormat.Split(':')[0];
+                        string format = dateColumnFormat.Split(':')[1];
+                        dgv.Columns[colName].DefaultCellStyle.Format = format;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки данных для {dgv.Name}: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+        private void LoadSpecialties()
+        {
+            string query = "SELECT SpecialtyID, SpecialtyName, SpecialtyNumber FROM Specialties ORDER BY SpecialtyName";
+            var headers = new Dictionary<string, string>
+            {
+                { "SpecialtyID", "" }, 
+                { "SpecialtyName", "Название специальности" },
+                { "SpecialtyNumber", "Код специальности" }
+            };
+            LoadData(query, specialtiesDataGridView, headers);
+        }
+
+        private void LoadSubjects()
+        {
+            string query = @"
+        SELECT
+            s.SubjectID,
+            s.SubjectName,
+            sp.SpecialtyName AS Specialty,
+            s.Semester,
+            s.SpecialtyID  
+        FROM Subjects s
+        INNER JOIN Specialties sp ON s.SpecialtyID = sp.SpecialtyID
+        ORDER BY sp.SpecialtyName, s.SubjectName, s.Semester";
+
+            var headers = new Dictionary<string, string>
+    {
+        { "SubjectID", "" }, 
+        { "SubjectName", "Название предмета" },
+        { "Specialty", "Специальность" },
+        { "Semester", "Семестр" },
+        { "SpecialtyID", "" } 
+    };
+            
+            LoadData(query, subjectsDataGridView, headers);
+        }
+        private void LoadGroupsData()
+        {
+            string query = @"
+                SELECT g.GroupID, g.GroupNumber, s.SpecialtyName, g.SpecialtyID
+                FROM Groups g
+                INNER JOIN Specialties s ON g.SpecialtyID = s.SpecialtyID
+                ORDER BY s.SpecialtyName, g.GroupNumber";
+            var headers = new Dictionary<string, string>
+            {
+                { "GroupID", "" }, 
+                { "GroupNumber", "Номер группы" },
+                { "SpecialtyName", "Специальность" },
+                { "SpecialtyID", "" } 
+            };
+            LoadData(query, groupsDataGridView, headers); 
+        }
+        private void LoadTeachers()
+        {
+            string query = @"
+        SELECT 
+            t.TeacherID, 
+            t.FullName, 
+            s.SubjectName AS TeachingSubject, 
+            t.SubjectID  -- Важно для редактирования
+        FROM Teachers t
+        INNER JOIN Subjects s ON t.SubjectID = s.SubjectID
+        ORDER BY t.FullName, s.SubjectName";
+
+            var headers = new Dictionary<string, string>
+    {
+        { "TeacherID", "" },
+        { "FullName", "ФИО преподавателя" },
+        { "TeachingSubject", "Преподаваемый предмет" },
+        { "SubjectID", "" } 
+    };
+            LoadData(query, teachersDataGridView, headers);
+        }
+        private void LoadExamEvents()
+        {
+            string query = @"
+                SELECT ev.EventID, s.SubjectName, sp.SpecialtyName, t.FullName AS TeacherFullName,
+                       qd.FilePath AS QuestionFilePath, td.FilePath AS TicketFilePath, ev.ExamDate,
+                       ev.SubjectID, ev.SpecialtyID, ev.TeacherID, ev.QuestionID, ev.TicketID
+                FROM ExamEvents ev
+                INNER JOIN Subjects s ON ev.SubjectID = s.SubjectID
+                INNER JOIN Specialties sp ON ev.SpecialtyID = sp.SpecialtyID
+                INNER JOIN Teachers t ON ev.TeacherID = t.TeacherID
+                INNER JOIN QuestionDocuments qd ON ev.QuestionID = qd.QuestionID
+                INNER JOIN TicketDocuments td ON ev.TicketID = td.TicketID
+                ORDER BY ev.ExamDate DESC, s.SubjectName";
+
+            var headers = new Dictionary<string, string> {
+                { "EventID", "" },
+                { "SubjectName", "Предмет" },
+                { "SpecialtyName", "Специальность" },
+                { "TeacherFullName", "Преподаватель" },
+                { "QuestionFilePathDisplay", "Файл вопросов" }, 
+                { "TicketFilePathDisplay", "Файл билетов" }, 
+                { "ExamDate", "Дата создания" },
+                { "SubjectID", "" }, { "SpecialtyID", "" }, { "TeacherID", "" }, 
+                { "QuestionID", "" }, { "TicketID", "" }, 
+                { "QuestionFilePath", "" }, { "TicketFilePath", "" } 
+            };
+            LoadData(query, examEventsDataGridView, headers, "ExamDate:dd.MM.yyyy", new List<string> { "QuestionFilePath", "TicketFilePath" });
+        }
+
+        private void LoadQuestionDocuments()
+        {
+            string query = "SELECT QuestionID, FilePath FROM QuestionDocuments ORDER BY FilePath";
+            var headers = new Dictionary<string, string> {
+                { "QuestionID", "" },
+                { "FilePathDisplay", "Файл вопросов (имя)" }, 
+                { "FilePath", "" } 
+            };
+            LoadData(query, questionDocsDataGridView, headers, null, new List<string> { "FilePath" });
+        }
+
+        private void LoadTicketDocuments()
+        {
+            string query = "SELECT TicketID, FilePath FROM TicketDocuments ORDER BY FilePath";
+            var headers = new Dictionary<string, string> {
+                { "TicketID", "" },
+                { "FilePathDisplay", "Файл билетов (имя)" }, 
+                { "FilePath", "" } 
+            };
+            LoadData(query, ticketDocsDataGridView, headers, null, new List<string> { "FilePath" });
+        }
+        public void RefreshGroups()
+        {
+            _groupsLoaded = false; 
+            if (tabControl1.SelectedTab == groupsTabPage)
+            {
+                LoadGroupsData();
+                _groupsLoaded = true;
+            }
+        }
+        private bool CheckUsage(string tableName, string columnName, int id, string messageIfUsed)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = $"SELECT COUNT(*) FROM {tableName} WHERE {columnName} = @id";
+                    SqlCommand cmd = new SqlCommand(query, connection);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    int count = (int)cmd.ExecuteScalar();
+                    if (count > 0)
+                    {
+                        MessageBox.Show(messageIfUsed, "Ошибка удаления", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return true;
+                    }
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка проверки связей: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return true; 
+                }
+            }
+        }
+        public void RefreshSpecialties() { _specialtiesLoaded = false; LoadSpecialties(); }
+        public void RefreshSubjects() { _subjectsLoaded = false; LoadSubjects(); }
+        public void RefreshTeachers() { _teachersLoaded = false; LoadTeachers(); }
+        public void RefreshQuestionDocuments() { _questionDocumentsLoaded = false; if (tabControl1.SelectedTab == questionDocumentsTabPage) LoadQuestionDocuments(); _questionDocumentsLoaded = true; RefreshExamEventsIfActive(); } 
+        public void RefreshTicketDocuments() { _ticketDocumentsLoaded = false; if (tabControl1.SelectedTab == ticketDocumentsTabPage) LoadTicketDocuments(); _ticketDocumentsLoaded = true; RefreshExamEventsIfActive(); }
+        public void RefreshExamEvents() { _examEventsLoaded = false; if (tabControl1.SelectedTab == examEventsTabPage) LoadExamEvents(); _examEventsLoaded = true; }
+        private void RefreshExamEventsIfActive() { if (tabControl1.SelectedTab == examEventsTabPage) { _examEventsLoaded = false; LoadExamEvents(); _examEventsLoaded = true; } else { _examEventsLoaded = false; } }
+        private void AddSpecialtyButton_Click(object sender, EventArgs e)
+        {
+            var addForm = new SpecialtiesAddEditForm(connectionString);
+            if (addForm.ShowDialog() == DialogResult.OK) RefreshSpecialties();
+        }
+
+        private void EditSpecialtyButton_Click(object sender, EventArgs e)
+        {
+            if (specialtiesDataGridView.CurrentRow == null) return;
+            int id = Convert.ToInt32(specialtiesDataGridView.CurrentRow.Cells["SpecialtyID"].Value);
+            string currentName = specialtiesDataGridView.CurrentRow.Cells["SpecialtyName"].Value.ToString();
+            string currentNumber = specialtiesDataGridView.CurrentRow.Cells["SpecialtyNumber"].Value.ToString();
+            var editForm = new SpecialtiesAddEditForm(connectionString, id, currentName, currentNumber);
+            if (editForm.ShowDialog() == DialogResult.OK) RefreshSpecialties();
+        }
+
+        private void DeleteSpecialtyButton_Click(object sender, EventArgs e)
+        {
+            if (specialtiesDataGridView.CurrentRow == null) return;
+            if (MessageBox.Show("Удалить выбранную специальность?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                int id = Convert.ToInt32(specialtiesDataGridView.CurrentRow.Cells["SpecialtyID"].Value);
+
+                if (CheckUsage("ExamEvents", "SpecialtyID", id, "Специальность используется в экзаменах.")) return;
+                if (CheckUsage("Subjects", "SpecialtyID", id, "Специальность используется для определения предметов.")) return;
+                if (CheckUsage("Groups", "SpecialtyID", id, "Специальность используется для определения групп.")) return; 
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("DELETE FROM Specialties WHERE SpecialtyID = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    try { conn.Open(); cmd.ExecuteNonQuery(); RefreshSpecialties(); RefreshSubjects(); RefreshGroups(); } // Обновляем зависимые таблицы
+                    catch (Exception ex) { MessageBox.Show("Ошибка удаления: " + ex.Message); }
+                }
+            }
+        }
+
+        private void DatabaseManagerForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            this.Owner.Visible = true;
+        }
+
+        private void AddSubjectsButton_Click(object sender, EventArgs e)
+        {
+            var addForm = new SubjectsAddEditForm(connectionString);
+            if (addForm.ShowDialog() == DialogResult.OK) RefreshSubjects();
+        }
+
+        private void EditSubjectsButton_Click(object sender, EventArgs e)
+        {
+            if (subjectsDataGridView.CurrentRow == null) return;
+            int id = Convert.ToInt32(subjectsDataGridView.CurrentRow.Cells["SubjectID"].Value);
+            string currentName = subjectsDataGridView.CurrentRow.Cells["SubjectName"].Value.ToString();
+            int currentSpecialtyId = Convert.ToInt32(subjectsDataGridView.CurrentRow.Cells["SpecialtyID"].Value); 
+            int currentSemester = Convert.ToInt32(subjectsDataGridView.CurrentRow.Cells["Semester"].Value);
+            var editForm = new SubjectsAddEditForm(connectionString, id, currentName, currentSpecialtyId, currentSemester);
+            if (editForm.ShowDialog() == DialogResult.OK) RefreshSubjects();
+        }
+
+        private void DeleteSubjectsButton_Click(object sender, EventArgs e)
+        {
+            if (subjectsDataGridView.CurrentRow == null) return;
+            if (MessageBox.Show("Удалить выбранный предмет?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                int id = Convert.ToInt32(subjectsDataGridView.CurrentRow.Cells["SubjectID"].Value);
+                if (CheckUsage("ExamEvents", "SubjectID", id, "Предмет используется в экзаменах. Сначала удалите или измените связанные экзамены.")) return;
+                if (CheckUsage("Teachers", "SubjectID", id, "Предмет назначен одному или нескольким преподавателям. Сначала измените или удалите этих преподавателей.")) return;
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("DELETE FROM Subjects WHERE SubjectID = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    try { conn.Open(); cmd.ExecuteNonQuery(); RefreshSubjects(); }
+                    catch (Exception ex) { MessageBox.Show("Ошибка удаления: " + ex.Message); }
+                }
+            }
+        }
+
+        private void AddTeachersButton_Click(object sender, EventArgs e)
+        {
+            var addForm = new TeachersAddEditForm(connectionString);
+            if (addForm.ShowDialog() == DialogResult.OK) RefreshTeachers();
+        }
+
+        private void EditTeachersButton_Click(object sender, EventArgs e)
+        {
+            if (teachersDataGridView.CurrentRow == null) return;
+            int id = Convert.ToInt32(teachersDataGridView.CurrentRow.Cells["TeacherID"].Value);
+            string currentName = teachersDataGridView.CurrentRow.Cells["FullName"].Value.ToString();
+            int currentSubjectId = Convert.ToInt32(teachersDataGridView.CurrentRow.Cells["SubjectID"].Value);
+
+            var editForm = new TeachersAddEditForm(connectionString, id, currentName, currentSubjectId);
+            if (editForm.ShowDialog() == DialogResult.OK) RefreshTeachers();
+        }
+
+        private void DeleteTeachersButton_Click(object sender, EventArgs e)
+        {
+            if (teachersDataGridView.CurrentRow == null) return;
+            if (MessageBox.Show("Удалить выбранного преподавателя?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                int id = Convert.ToInt32(teachersDataGridView.CurrentRow.Cells["TeacherID"].Value);
+                if (CheckUsage("ExamEvents", "TeacherID", id, "Преподаватель используется в экзаменах.")) return;
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("DELETE FROM Teachers WHERE TeacherID = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    try { conn.Open(); cmd.ExecuteNonQuery(); RefreshTeachers(); }
+                    catch (Exception ex) { MessageBox.Show("Ошибка удаления: " + ex.Message); }
+                }
+            }
+        }
+
+        private void AddExamEventsButton_Click(object sender, EventArgs e)
+        {
+            if (!CheckIfDocumentsExist("QuestionDocuments", "документов с вопросами") ||
+                !CheckIfDocumentsExist("TicketDocuments", "документов с билетами"))
+            {
+                return;
+            }
+
+            var addForm = new ExamEventsAddEditForm(connectionString);
+            if (addForm.ShowDialog() == DialogResult.OK) RefreshExamEvents();
+        }
+        private bool CheckIfDocumentsExist(string tableName, string documentTypeName)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = $"SELECT COUNT(*) FROM {tableName}";
+                    SqlCommand cmd = new SqlCommand(query, connection);
+                    int count = (int)cmd.ExecuteScalar();
+                    if (count == 0)
+                    {
+                        MessageBox.Show($"Нет доступных {documentTypeName} для выбора. Пожалуйста, сначала добавьте их на соответствующей вкладке.", "Нет документов", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return false;
+                    }
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка проверки наличия документов: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false; 
+                }
+            }
+        }
+        private void EditExamEventsButton_Click(object sender, EventArgs e)
+        {
+            if (examEventsDataGridView.CurrentRow == null) return;
+            int id = Convert.ToInt32(examEventsDataGridView.CurrentRow.Cells["EventID"].Value);
+            int subjectId = Convert.ToInt32(examEventsDataGridView.CurrentRow.Cells["SubjectID"].Value);
+            int specialtyId = Convert.ToInt32(examEventsDataGridView.CurrentRow.Cells["SpecialtyID"].Value);
+            int teacherId = Convert.ToInt32(examEventsDataGridView.CurrentRow.Cells["TeacherID"].Value);
+            int questionId = Convert.ToInt32(examEventsDataGridView.CurrentRow.Cells["QuestionID"].Value);
+            int ticketId = Convert.ToInt32(examEventsDataGridView.CurrentRow.Cells["TicketID"].Value);
+            DateTime examDate = Convert.ToDateTime(examEventsDataGridView.CurrentRow.Cells["ExamDate"].Value);
+
+            var editForm = new ExamEventsAddEditForm(connectionString, id, subjectId, specialtyId, teacherId, questionId, ticketId, examDate);
+            if (editForm.ShowDialog() == DialogResult.OK) RefreshExamEvents();
+        }
+
+        private void DeleteExamEventsButton_Click(object sender, EventArgs e)
+        {
+            if (examEventsDataGridView.CurrentRow == null) return;
+            if (MessageBox.Show("Удалить выбранный экзамен? Это не удалит связанные документы с вопросами и билетами, только саму запись об экзамене.", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                int id = Convert.ToInt32(examEventsDataGridView.CurrentRow.Cells["EventID"].Value);
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("DELETE FROM ExamEvents WHERE EventID = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    try { conn.Open(); cmd.ExecuteNonQuery(); RefreshExamEvents(); }
+                    catch (Exception ex) { MessageBox.Show("Ошибка удаления: " + ex.Message); }
+                }
+            }
+        }
+
+         private void DeleteQuestionDocsButton_Click(object sender, EventArgs e)
+        {
+            if (questionDocsDataGridView.CurrentRow == null) return;
+            if (MessageBox.Show("Удалить выбранный документ с вопросами?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                int id = Convert.ToInt32(questionDocsDataGridView.CurrentRow.Cells["QuestionID"].Value);
+                if (CheckUsage("ExamEvents", "QuestionID", id, "Документ с вопросами используется в одном или нескольких экзаменах. Сначала удалите или измените эти экзамены."))
+                {
+                    return;
+                }
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("DELETE FROM QuestionDocuments WHERE QuestionID = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    try { conn.Open(); cmd.ExecuteNonQuery(); RefreshQuestionDocuments(); }
+                    catch (Exception ex) { MessageBox.Show("Ошибка удаления: " + ex.Message); }
+                }
+            }
+        }
+
+        private void DeleteTicketDocsButton_Click(object sender, EventArgs e)
+        {
+            if (ticketDocsDataGridView.CurrentRow == null) return;
+            if (MessageBox.Show("Удалить выбранный документ с билетами?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                int id = Convert.ToInt32(ticketDocsDataGridView.CurrentRow.Cells["TicketID"].Value);
+                if (CheckUsage("ExamEvents", "TicketID", id, "Документ с билетами используется в одном или нескольких экзаменах. Сначала удалите или измените эти экзамены."))
+                {
+                    return;
+                }
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("DELETE FROM TicketDocuments WHERE TicketID = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    try { conn.Open(); cmd.ExecuteNonQuery(); RefreshTicketDocuments(); }
+                    catch (Exception ex) { MessageBox.Show("Ошибка удаления: " + ex.Message); }
+                }
+            }
+        }
+        public static bool SaveDocumentPathToDatabase(string filePath, string tableName, string connectionString)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                MessageBox.Show($"Путь к файлу для таблицы {tableName} не указан.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            string query = $"INSERT INTO {tableName} (FilePath) VALUES (@FilePath)";
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@FilePath", filePath);
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                    return true;
+                }
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 2627 || ex.Number == 2601) // Коды ошибок для нарушения UNIQUE constraint
+                {
+                    MessageBox.Show($"Файл '{Path.GetFileName(filePath)}' уже зарегистрирован в базе данных (таблица: {tableName}). Повторное добавление не требуется.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return true;
+                }
+                else
+                {
+                    MessageBox.Show($"Ошибка при сохранении пути в БД (таблица: {tableName}):\n{ex.Message}", "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Общая ошибка при сохранении пути в БД (таблица: {tableName}):\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+        public static bool SaveExamEvent(int subjectId, int specialtyId, int teacherId, int questionId, int ticketId, DateTime examDate, string connectionString)
+        {
+            if (subjectId <= 0 || specialtyId <= 0 || teacherId <= 0 || questionId <= 0 || ticketId <= 0)
+            {
+                MessageBox.Show("Некорректные ID для создания события экзамена.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            string query = @"
+            INSERT INTO ExamEvents 
+                (SubjectID, SpecialtyID, TeacherID, QuestionID, TicketID, ExamDate)
+            VALUES 
+                (@SubjectID, @SpecialtyID, @TeacherID, @QuestionID, @TicketID, @ExamDate)";
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SubjectID", subjectId);
+                    cmd.Parameters.AddWithValue("@SpecialtyID", specialtyId);
+                    cmd.Parameters.AddWithValue("@TeacherID", teacherId);
+                    cmd.Parameters.AddWithValue("@QuestionID", questionId);
+                    cmd.Parameters.AddWithValue("@TicketID", ticketId);
+                    cmd.Parameters.AddWithValue("@ExamDate", examDate.Date); // Сохраняем только дату
+
+                    conn.Open();
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    return rowsAffected > 0; // Успешно, если хотя бы одна строка была добавлена
+                }
+            }
+            catch (SqlException ex)
+            {
+                MessageBox.Show($"Ошибка SQL при сохранении события экзамена:\n{ex.Message}", "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Общая ошибка при сохранении события экзамена:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+        // Обработчик для таблицы с документами вопросов
+        private void questionDocsDataGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                try
+                {
+                    string filePath = questionDocsDataGridView.Rows[e.RowIndex].Cells["FilePath"].Value?.ToString();
+                    OpenFile(filePath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Не удалось получить путь к файлу: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // Обработчик для таблицы с документами билетов
+        private void ticketDocsDataGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                try
+                {
+                    string filePath = ticketDocsDataGridView.Rows[e.RowIndex].Cells["FilePath"].Value?.ToString();
+                    OpenFile(filePath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Не удалось получить путь к файлу: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // Обработчик для таблицы с экзаменационными событиями
+        private void examEventsDataGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0) 
+            {
+                try
+                {
+                    string clickedColumnName = examEventsDataGridView.Columns[e.ColumnIndex].Name;
+                    string filePath = null;
+
+                    if (clickedColumnName == "QuestionFilePathDisplay") 
+                    {
+                        filePath = examEventsDataGridView.Rows[e.RowIndex].Cells["QuestionFilePath"].Value?.ToString(); 
+                    }
+                    else if (clickedColumnName == "TicketFilePathDisplay") 
+                    {
+                        filePath = examEventsDataGridView.Rows[e.RowIndex].Cells["TicketFilePath"].Value?.ToString(); 
+                    }
+
+                    if (filePath != null) 
+                    {
+                        OpenFile(filePath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Не удалось обработать двойной клик: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+        private void OpenFile(string filePath)
+        {
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Не удалось открыть файл: {ex.Message}\nПуть: {filePath}", "Ошибка открытия файла", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"Файл не найден по указанному пути:\n{filePath}", "Файл не найден", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Путь к файлу не указан для этой записи.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void AddGroupsButton_Click(object sender, EventArgs e)
+        {
+            var addForm = new GroupsAddEditForm(connectionString); 
+            if (addForm.ShowDialog() == DialogResult.OK)
+            {
+                RefreshGroups();
+            }
+        }
+
+        private void EditGroupsButton_Click(object sender, EventArgs e)
+        {
+            if (groupsDataGridView.CurrentRow == null)
+            {
+                MessageBox.Show("Пожалуйста, выберите группу для редактирования.", "Группа не выбрана", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                int groupId = Convert.ToInt32(groupsDataGridView.CurrentRow.Cells["GroupID"].Value);
+                string currentGroupNumber = groupsDataGridView.CurrentRow.Cells["GroupNumber"].Value.ToString();
+                int currentSpecialtyId = Convert.ToInt32(groupsDataGridView.CurrentRow.Cells["SpecialtyID"].Value);
+
+                var editForm = new GroupsAddEditForm(connectionString, groupId, currentGroupNumber, currentSpecialtyId);
+                if (editForm.ShowDialog() == DialogResult.OK)
+                {
+                    RefreshGroups();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Не удалось получить данные для редактирования группы: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void DeleteGroupsButton_Click(object sender, EventArgs e)
+        {
+            if (groupsDataGridView.CurrentRow == null)
+            {
+                MessageBox.Show("Пожалуйста, выберите группу для удаления.", "Группа не выбрана", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (MessageBox.Show("Вы уверены, что хотите удалить выбранную группу?", "Подтверждение удаления", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                try
+                {
+                    int groupId = Convert.ToInt32(groupsDataGridView.CurrentRow.Cells["GroupID"].Value);
+                    using (SqlConnection conn = new SqlConnection(connectionString))
+                    using (SqlCommand cmd = new SqlCommand("DELETE FROM Groups WHERE GroupID = @id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", groupId);
+                        conn.Open();
+                        cmd.ExecuteNonQuery();
+                        RefreshGroups();
+                        MessageBox.Show("Группа успешно удалена.", "Удаление завершено", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка удаления группы: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+    }
+
+}
+DatabaseHelper.cs
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO;
+namespace Exam_Tickets
+{
+    public static class DatabaseHelper
+    {
+        public static int? GetOrCreateDocumentAndReturnId(string filePath, string tableName, string idColumnName, string connectionString)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                MessageBox.Show($"Путь к файлу для таблицы {tableName} не указан.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return null;
+            }
+
+            object existingId = null;
+            string selectQuery = $"SELECT {idColumnName} FROM {tableName} WHERE FilePath = @FilePath";
+            string insertQuery = $"INSERT INTO {tableName} (FilePath) VALUES (@FilePath); SELECT SCOPE_IDENTITY();";
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (SqlCommand cmdSelect = new SqlCommand(selectQuery, conn))
+                    {
+                        cmdSelect.Parameters.AddWithValue("@FilePath", filePath);
+                        existingId = cmdSelect.ExecuteScalar();
+                    }
+
+                    if (existingId != null && existingId != DBNull.Value)
+                    {
+                        return Convert.ToInt32(existingId);
+                    }
+                    else
+                    {
+                        using (SqlCommand cmdInsert = new SqlCommand(insertQuery, conn))
+                        {
+                            cmdInsert.Parameters.AddWithValue("@FilePath", filePath);
+                            object newId = cmdInsert.ExecuteScalar();
+                            if (newId != null && newId != DBNull.Value)
+                            {
+                                return Convert.ToInt32(newId);
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Не удалось получить ID для новой записи в таблице {tableName}.", "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 2627 || ex.Number == 2601)
+                {
+                    MessageBox.Show($"Файл '{Path.GetFileName(filePath)}' уже был зарегистрирован (возможно, параллельно) в таблице {tableName}.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    using (SqlConnection conn = new SqlConnection(connectionString))
+                    {
+                        conn.Open();
+                        using (SqlCommand cmdSelectRetry = new SqlCommand(selectQuery, conn))
+                        {
+                            cmdSelectRetry.Parameters.AddWithValue("@FilePath", filePath);
+                            existingId = cmdSelectRetry.ExecuteScalar();
+                            if (existingId != null && existingId != DBNull.Value) return Convert.ToInt32(existingId);
+                        }
+                    }
+                    return null;
+                }
+                MessageBox.Show($"Ошибка SQL при работе с таблицей {tableName}:\n{ex.Message}", "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Общая ошибка при работе с таблицей {tableName}:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+        }
+
+        public static int? GetOrCreateTeacherAndReturnId(string fullName, int subjectId, string connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(fullName) || subjectId <= 0)
+            {
+                // Не показываем MessageBox здесь, чтобы не спамить, если вызывается в цикле.
+                // Вызывающий код должен обработать null.
+                return null;
+            }
+
+            fullName = fullName.Trim();
+            string selectQuery = "SELECT TeacherID FROM Teachers WHERE FullName = @FullName AND SubjectID = @SubjectID";
+            object teacherIdObj;
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    // 1. Попытка найти существующего преподавателя для данного предмета
+                    using (SqlCommand cmdSelect = new SqlCommand(selectQuery, conn))
+                    {
+                        cmdSelect.Parameters.AddWithValue("@FullName", fullName);
+                        cmdSelect.Parameters.AddWithValue("@SubjectID", subjectId);
+                        teacherIdObj = cmdSelect.ExecuteScalar();
+                    }
+
+                    if (teacherIdObj != null && teacherIdObj != DBNull.Value)
+                    {
+                        return Convert.ToInt32(teacherIdObj);
+                    }
+                    else
+                    {
+                        string insertQuery = "INSERT INTO Teachers (FullName, SubjectID) VALUES (@FullName, @SubjectID); SELECT SCOPE_IDENTITY();";
+                        using (SqlCommand cmdInsert = new SqlCommand(insertQuery, conn))
+                        {
+                            cmdInsert.Parameters.AddWithValue("@FullName", fullName);
+                            cmdInsert.Parameters.AddWithValue("@SubjectID", subjectId);
+                            object newTeacherIdObj = cmdInsert.ExecuteScalar();
+                            if (newTeacherIdObj != null && newTeacherIdObj != DBNull.Value)
+                            {
+                                Debug.WriteLine($"Добавлен новый преподаватель: {fullName} для предмета ID {subjectId}, TeacherID: {newTeacherIdObj}");
+                                return Convert.ToInt32(newTeacherIdObj);
+                            }
+                            else
+                            {
+
+                                Debug.WriteLine($"Не удалось добавить преподавателя '{fullName}' для предмета ID {subjectId} и получить его ID.");
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 2627 || ex.Number == 2601)
+                {
+                    using (SqlConnection connRetry = new SqlConnection(connectionString))
+                    {
+                        connRetry.Open();
+                        using (SqlCommand cmdSelectRetry = new SqlCommand(selectQuery, connRetry))
+                        {
+                            cmdSelectRetry.Parameters.AddWithValue("@FullName", fullName);
+                            cmdSelectRetry.Parameters.AddWithValue("@SubjectID", subjectId);
+                            teacherIdObj = cmdSelectRetry.ExecuteScalar();
+                            if (teacherIdObj != null && teacherIdObj != DBNull.Value) return Convert.ToInt32(teacherIdObj);
+                        }
+                    }
+                    Debug.WriteLine($"Преподаватель '{fullName}' для предмета ID {subjectId} уже существует (код {ex.Number}). Не удалось получить ID при повторной попытке.");
+                    return null;
+                }
+                MessageBox.Show($"Ошибка SQL при работе с таблицей Teachers для ФИО '{fullName}' и предмета ID {subjectId}:\n{ex.Message}", "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Общая ошибка при поиске/добавлении преподавателя '{fullName}' для предмета ID {subjectId}:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+        }
+
+        public static bool SaveExamEvent(int subjectId, int specialtyId, int teacherId, int questionId, int ticketId, DateTime examDate, string connectionString)
+        {
+            if (subjectId <= 0 || specialtyId <= 0 || teacherId <= 0 || questionId <= 0 || ticketId <= 0)
+            {
+                MessageBox.Show("Некорректные ID для создания события экзамена.", "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            string query = @"INSERT INTO ExamEvents (SubjectID, SpecialtyID, TeacherID, QuestionID, TicketID, ExamDate)
+                         VALUES (@SubjectID, @SpecialtyID, @TeacherID, @QuestionID, @TicketID, @ExamDate)";
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SubjectID", subjectId);
+                    cmd.Parameters.AddWithValue("@SpecialtyID", specialtyId);
+                    cmd.Parameters.AddWithValue("@TeacherID", teacherId);
+                    cmd.Parameters.AddWithValue("@QuestionID", questionId);
+                    cmd.Parameters.AddWithValue("@TicketID", ticketId);
+                    cmd.Parameters.AddWithValue("@ExamDate", examDate.Date);
+                    conn.Open();
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    return rowsAffected > 0;
+                }
+            }
+            catch (SqlException ex)
+            {
+                MessageBox.Show($"Ошибка SQL при сохранении события экзамена:\n{ex.Message}", "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Общая ошибка при сохранении события экзамена:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        // НОВЫЙ МЕТОД
+        public static int? GetSpecialtyIdByNumber(string specialtyNumber, string connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(specialtyNumber)) return null;
+            string query = "SELECT SpecialtyID FROM Specialties WHERE SpecialtyNumber = @SpecialtyNumber";
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SpecialtyNumber", specialtyNumber.Trim());
+                    conn.Open();
+                    object result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                    return null; // Не найдено
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка получения ID специальности по номеру '{specialtyNumber}': {ex.Message}", "Ошибка БД", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+        }
+
+        
+        public static int? GetSubjectIdByNameAndSpecialtyId(string subjectName, int specialtyId, string connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(subjectName) || specialtyId <= 0) return null;
+
+            // Учитываем, что Form2.Exam хранит только SubjectName (без семестра в строке)
+            // Если бы Form2.Exam хранил "Имя (Х сем.)", потребовался бы парсинг subjectName.
+            // Текущая версия UserControl3.comboBox2_SelectedIndexChanged сохраняет чистое SubjectName в Form2.Exam, это хорошо.
+
+            string query = "SELECT SubjectID FROM Subjects WHERE SubjectName = @SubjectName AND SpecialtyID = @SpecialtyID";
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SubjectName", subjectName.Trim());
+                    cmd.Parameters.AddWithValue("@SpecialtyID", specialtyId);
+                    conn.Open();
+                    object result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                    return null; // Не найдено
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка получения ID предмета '{subjectName}' для специальности ID {specialtyId}: {ex.Message}", "Ошибка БД", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+        }
+    }
+}
+SpecialtiesAddEditForm.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.SqlClient;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class SpecialtiesAddEditForm : Form
+    {
+        private string _connectionString;
+        private int? _specialtyId;
+        public SpecialtiesAddEditForm(string connectionString, int? specialtyId = null, string currentName = null, string currentNumber = null)
+        {
+            InitializeComponent();
+            _connectionString = connectionString;
+            _specialtyId = specialtyId;
+
+            if (_specialtyId.HasValue) 
+            {
+                this.Text = "Редактировать специальность";
+                specialtyNameTextBox.Text = currentName;
+                specialtyNumberTextBox.Text = currentNumber;
+            }
+            else 
+            {
+                this.Text = "Добавить специальность";
+            }
+        }
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(specialtyNameTextBox.Text))
+            {
+                MessageBox.Show("Название специальности не может быть пустым.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(specialtyNumberTextBox.Text))
+            {
+                MessageBox.Show("Номер специальности не может быть пустым.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            string query;
+            if (_specialtyId.HasValue) 
+            {
+                query = "UPDATE Specialties SET SpecialtyName = @name, SpecialtyNumber = @number WHERE SpecialtyID = @id";
+            }
+            else 
+            {
+                query = "INSERT INTO Specialties (SpecialtyName, SpecialtyNumber) VALUES (@name, @number)";
+            }
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@name", specialtyNameTextBox.Text.Trim());
+                cmd.Parameters.AddWithValue("@number", specialtyNumberTextBox.Text.Trim());
+                if (_specialtyId.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@id", _specialtyId.Value);
+                }
+
+                try
+                {
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка сохранения: " + ex.Message, "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void CancelButton_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
+        }
+
+        private void SpecialtiesAddEditForm_Load(object sender, EventArgs e)
+        {
+            Style.MakeStyle(this);
+        }
+    }
+}
+SubjectsAddEditForm.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.SqlClient;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class SubjectsAddEditForm : Form
+    {
+        private string _connectionString;
+        private int? _subjectId;
+        public SubjectsAddEditForm(string connectionString, int? subjectId = null, string currentName = null, int? currentSpecialtyId = null, int? currentSemester = null)
+        {
+            InitializeComponent();
+            _connectionString = connectionString;
+            _subjectId = subjectId;
+            LoadSpecialtiesIntoComboBox();
+
+            if (_subjectId.HasValue)
+            {
+                this.Text = "Редактировать предмет";
+                subjectNameTextBox.Text = currentName;
+                subjectNameTextBox.Text = currentName;
+                specialtyComboBox.SelectedValue = currentSpecialtyId;
+            }
+            else
+            {
+                this.Text = "Добавить предмет";
+            }
+        }
+        private void LoadSpecialtiesIntoComboBox()
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT SpecialtyID, SpecialtyName + ' (' + SpecialtyNumber + ')' AS DisplayName FROM Specialties ORDER BY SpecialtyName";
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+                    DataTable table = new DataTable();
+                    adapter.Fill(table);
+
+                    specialtyComboBox.DisplayMember = "DisplayName"; 
+                    specialtyComboBox.ValueMember = "SpecialtyID";
+                    specialtyComboBox.DataSource = table;
+                    if (table.Rows.Count > 0) specialtyComboBox.SelectedIndex = 0;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки специальностей: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(subjectNameTextBox.Text))
+            {
+                MessageBox.Show("Название предмета не может быть пустым.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                subjectNameTextBox.Focus();
+                return;
+            }
+            if (specialtyComboBox.SelectedValue == null)
+            {
+                MessageBox.Show("Выберите специальность.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                specialtyComboBox.Focus();
+                return;
+            }
+
+            string query;
+            if (_subjectId.HasValue) 
+            {
+                query = "UPDATE Subjects SET SubjectName = @name, SpecialtyID = @specialtyId, Semester = @semester WHERE SubjectID = @id";
+            }
+            else 
+            {
+                query = "INSERT INTO Subjects (SubjectName, SpecialtyID, Semester) VALUES (@name, @specialtyId, @semester)";
+            }
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@name", subjectNameTextBox.Text.Trim());
+                cmd.Parameters.AddWithValue("@specialtyId", (int)specialtyComboBox.SelectedValue);
+                cmd.Parameters.AddWithValue("@semester", (int)numericUpDown1.Value);
+
+                if (_subjectId.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@id", _subjectId.Value);
+                }
+
+                try
+                {
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка сохранения предмета: " + ex.Message, "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void CancelButton_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
+        }
+
+        private void SubjectsAddEditForm_Load(object sender, EventArgs e)
+        {
+            Style.MakeStyle(this);
+        }
+    }
+}
+TechersAddEditForm.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.SqlClient;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class TeachersAddEditForm : Form
+    {
+        private string _connectionString;
+        private int? _teacherId;
+        public TeachersAddEditForm(string connectionString, int? teacherId = null, string currentFullName = null, int? currentSubjectId = null)
+        {
+            InitializeComponent();
+            _connectionString = connectionString;
+            _teacherId = teacherId;
+
+            LoadSubjectsIntoComboBox();
+
+            if (_teacherId.HasValue)
+            {
+                this.Text = "Редактировать преподавателя";
+                NameTextBox.Text = currentFullName;
+                if (currentSubjectId.HasValue)
+                {
+                    subjectComboBox.SelectedValue = currentSubjectId.Value;
+                }
+            }
+            else
+            {
+                this.Text = "Добавить преподавателя";
+            }
+        }
+        private void LoadSubjectsIntoComboBox()
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = @"
+                        SELECT 
+                            s.SubjectID, 
+                            s.SubjectName + ' (' + sp.SpecialtyName + ', ' + CAST(s.Semester AS VARCHAR) + ' сем.)' AS DisplaySubjectName
+                        FROM Subjects s
+                        INNER JOIN Specialties sp ON s.SpecialtyID = sp.SpecialtyID
+                        ORDER BY sp.SpecialtyName, s.SubjectName, s.Semester";
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+                    DataTable table = new DataTable();
+                    adapter.Fill(table);
+
+                    subjectComboBox.DisplayMember = "DisplaySubjectName";
+                    subjectComboBox.ValueMember = "SubjectID";
+                    subjectComboBox.DataSource = table;
+
+                    if (table.Rows.Count > 0)
+                    {
+                        subjectComboBox.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        MessageBox.Show("В базе данных нет предметов. Пожалуйста, сначала добавьте предметы. Преподаватель не может быть добавлен без предмета.", "Нет данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        subjectComboBox.Enabled = false;
+                        SaveButton.Enabled = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки предметов: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    subjectComboBox.Enabled = false;
+                    SaveButton.Enabled = false;
+                }
+            }
+        }
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(NameTextBox.Text))
+            {
+                MessageBox.Show("ФИО преподавателя не может быть пустым.", "Ошибка валидации", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                NameTextBox.Focus();
+                return;
+            }
+            if (subjectComboBox.SelectedValue == null || !(subjectComboBox.SelectedValue is int) || (int)subjectComboBox.SelectedValue <= 0)
+            {
+                MessageBox.Show("Выберите предмет для преподавателя.", "Ошибка валидации", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                subjectComboBox.Focus();
+                return;
+            }
+
+            string query;
+            if (_teacherId.HasValue) 
+            {
+                query = "UPDATE Teachers SET FullName = @FullName, SubjectID = @SubjectID WHERE TeacherID = @TeacherID";
+            }
+            else 
+            {
+                query = "INSERT INTO Teachers (FullName, SubjectID) VALUES (@FullName, @SubjectID)";
+            }
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@FullName", NameTextBox.Text.Trim());
+                cmd.Parameters.AddWithValue("@SubjectID", (int)subjectComboBox.SelectedValue);
+
+                if (_teacherId.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@TeacherID", _teacherId.Value);
+                }
+
+                try
+                {
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+                catch (SqlException ex)
+                {
+                    if (ex.Number == 2627 || ex.Number == 2601) 
+                    {
+                        MessageBox.Show("Преподаватель с таким ФИО уже назначен на этот предмет.", "Ошибка дублирования", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Ошибка сохранения преподавателя: " + ex.Message, "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка сохранения преподавателя: " + ex.Message, "Общая ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void CancelButton_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
+        }
+
+        private void TeachersAddEditForm_Load(object sender, EventArgs e)
+        {
+            Style.MakeStyle(this);
+        }
+    }
+}
+ExamEventsAddEditFom.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.SqlClient;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.IO;
+
+namespace Exam_Tickets
+{
+    public partial class ExamEventsAddEditForm : Form
+    {
+        private string _connectionString;
+        private int? _eventId;
+        private int _initialSubjectIdToSelect = -1;
+        public ExamEventsAddEditForm(string connectionString, int? eventId = null,
+                                   int? subjectId = null, int? specialtyId = null,
+                                   int? teacherId = null, int? questionId = null, int? ticketId = null,
+                                   DateTime? examDate = null)
+        {
+            InitializeComponent();
+            _connectionString = connectionString;
+            _eventId = eventId;
+            if (subjectId.HasValue) _initialSubjectIdToSelect = subjectId.Value;
+
+            LoadSpecialtiesIntoComboBox();
+            LoadTeachersIntoComboBox();    
+            LoadFileDocumentComboBox(questionDocumentComboBox, "SELECT QuestionID, FilePath FROM QuestionDocuments ORDER BY FilePath", "QuestionID");
+            LoadFileDocumentComboBox(ticketDocumentComboBox, "SELECT TicketID, FilePath FROM TicketDocuments ORDER BY FilePath", "TicketID");
+
+            specialtyComboBox.SelectedIndexChanged += new EventHandler(specialtyComboBox_SelectedIndexChanged);
+
+
+            if (_eventId.HasValue) 
+            {
+                this.Text = "Редактировать экзамен";
+                if (specialtyId.HasValue) specialtyComboBox.SelectedValue = specialtyId.Value;
+                if (teacherId.HasValue) teacherComboBox.SelectedValue = teacherId.Value;
+                if (questionId.HasValue) questionDocumentComboBox.SelectedValue = questionId.Value;
+                if (ticketId.HasValue) ticketDocumentComboBox.SelectedValue = ticketId.Value;
+                examDateTimePicker.Value = examDate ?? DateTime.Now.Date;
+            }
+            else 
+            {
+                this.Text = "Добавить экзамен";
+                examDateTimePicker.Value = DateTime.Now.Date;
+                if (specialtyComboBox.Items.Count > 0 && specialtyComboBox.SelectedValue != null)
+                {
+                    PopulateSubjectsComboBox((int)specialtyComboBox.SelectedValue);
+                }
+                else
+                {
+                    PopulateSubjectsComboBox(0);
+                }
+            }
+        }
+        private void PopulateSubjectsComboBox(int selectedSpecialtyID)
+        {
+            subjectComboBox.DataSource = null;
+            subjectComboBox.Items.Clear();
+
+            if (selectedSpecialtyID <= 0) 
+            {
+                subjectComboBox.Enabled = false;
+                subjectComboBox.Items.Add("Сначала выберите специальность");
+                subjectComboBox.SelectedIndex = 0;
+                return;
+            }
+
+            subjectComboBox.Enabled = true;
+            DataTable table = new DataTable();
+            using (SqlConnection connection = new SqlConnection(this._connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    string query = "SELECT SubjectID, SubjectName, Semester FROM Subjects WHERE SpecialtyID = @SpecialtyID ORDER BY SubjectName, Semester";
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+                    adapter.SelectCommand.Parameters.AddWithValue("@SpecialtyID", selectedSpecialtyID);
+                    adapter.Fill(table);
+
+                    if (table.Rows.Count > 0)
+                    {
+                        table.Columns.Add("DisplayMember", typeof(string));
+                        foreach (DataRow row in table.Rows)
+                        {
+                            row["DisplayMember"] = $"{row["SubjectName"]} ({row["Semester"]} сем.)";
+                        }
+                        subjectComboBox.DisplayMember = "DisplayMember";
+                    }
+                    else
+                    {
+                        subjectComboBox.DisplayMember = "SubjectName"; 
+                    }
+
+                    subjectComboBox.ValueMember = "SubjectID";
+                    subjectComboBox.DataSource = table;
+
+                    if (table.Rows.Count == 0)
+                    {
+                        subjectComboBox.Text = "Нет предметов для спец-ти";
+                    }
+                    else
+                    {
+                        if (_initialSubjectIdToSelect != -1)
+                        {
+                            subjectComboBox.SelectedValue = _initialSubjectIdToSelect;
+                            _initialSubjectIdToSelect = -1; 
+                        }
+                        if (subjectComboBox.SelectedIndex == -1) 
+                            subjectComboBox.SelectedIndex = 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка загрузки предметов: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    subjectComboBox.Enabled = false;
+                }
+            }
+        }
+        private void LoadSpecialtiesIntoComboBox()
+        {
+            LoadComboBoxDataHelper(specialtyComboBox,
+                                 "SELECT SpecialtyID, SpecialtyName + ' (' + SpecialtyNumber + ')' AS DisplayName FROM Specialties ORDER BY SpecialtyName",
+                                 "DisplayName", "SpecialtyID");
+        }
+
+        private void LoadTeachersIntoComboBox()
+        {
+            LoadComboBoxDataHelper(teacherComboBox,
+                                 "SELECT TeacherID, FullName FROM Teachers ORDER BY FullName",
+                                 "FullName", "TeacherID");
+        }
+        
+        private void LoadFileDocumentComboBox(ComboBox cmb, string query, string valueMemberIdColumn)
+        {
+             try
+            {
+                using (SqlConnection conn = new SqlConnection(_connectionString))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+
+                    DataTable displayDt = new DataTable();
+                    displayDt.Columns.Add(valueMemberIdColumn, typeof(int));
+                    displayDt.Columns.Add("DisplayFileName", typeof(string));
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        if (row["FilePath"] != DBNull.Value)
+                            displayDt.Rows.Add(row[valueMemberIdColumn], Path.GetFileName(row["FilePath"].ToString()));
+                        else
+                             displayDt.Rows.Add(row[valueMemberIdColumn], "N/A"); 
+                    }
+
+                    cmb.DataSource = displayDt;
+                    cmb.DisplayMember = "DisplayFileName";
+                    cmb.ValueMember = valueMemberIdColumn;
+                    if (displayDt.Rows.Count > 0) cmb.SelectedIndex = 0; else cmb.SelectedIndex = -1;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки документов для {cmb.Name}: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadComboBoxDataHelper(ComboBox cmb, string query, string displayMember, string valueMember)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_connectionString))
+                {
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    cmb.DataSource = dt;
+                    cmb.DisplayMember = displayMember;
+                    cmb.ValueMember = valueMember;
+                     if (dt.Rows.Count > 0) cmb.SelectedIndex = 0; else cmb.SelectedIndex = -1;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных для {cmb.Name}: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+
+       
+        
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            if (specialtyComboBox.SelectedValue == null ||
+                 subjectComboBox.SelectedValue == null || 
+                 teacherComboBox.SelectedValue == null ||
+                 questionDocumentComboBox.SelectedValue == null ||
+                 ticketDocumentComboBox.SelectedValue == null)
+            {
+                MessageBox.Show("Пожалуйста, выберите все значения для экзамена.", "Ошибка валидации", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string query;
+            if (_eventId.HasValue)
+            {
+                query = @"UPDATE ExamEvents
+                          SET SubjectID=@subId, SpecialtyID=@specId, TeacherID=@teachId,
+                              QuestionID=@questId, TicketID=@tickId, ExamDate=@date
+                          WHERE EventID=@id";
+            }
+            else
+            {
+                query = @"INSERT INTO ExamEvents (SubjectID, SpecialtyID, TeacherID, QuestionID, TicketID, ExamDate)
+                          VALUES (@subId, @specId, @teachId, @questId, @tickId, @date)";
+            }
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@specId", (int)specialtyComboBox.SelectedValue);
+                cmd.Parameters.AddWithValue("@subId", (int)subjectComboBox.SelectedValue); 
+                cmd.Parameters.AddWithValue("@teachId", (int)teacherComboBox.SelectedValue);
+                cmd.Parameters.AddWithValue("@questId", (int)questionDocumentComboBox.SelectedValue);
+                cmd.Parameters.AddWithValue("@tickId", (int)ticketDocumentComboBox.SelectedValue);
+                cmd.Parameters.AddWithValue("@date", examDateTimePicker.Value.Date);
+                if (_eventId.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@id", _eventId.Value);
+                }
+
+                try
+                {
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка сохранения экзамена: " + ex.Message, "Ошибка базы данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void CancelButton_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
+        }
+
+        private void ExamEventsAddEditForm_Load(object sender, EventArgs e)
+        {
+            Style.MakeStyle(this);
+        }
+
+        private void specialtyComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (specialtyComboBox.SelectedValue != null && specialtyComboBox.SelectedValue is int)
+            {
+                int selectedSpecialtyId = (int)specialtyComboBox.SelectedValue;
+                PopulateSubjectsComboBox(selectedSpecialtyId);
+            }
+            else
+            {
+                PopulateSubjectsComboBox(0); 
+            }
+        }
+    }
+}
+Style.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Drawing;
+
+namespace Exam_Tickets
+{
+    internal class Style
+    {
+        public static Color[] BackColorStyle = { Color.Aqua, Color.ForestGreen, Color.LightSkyBlue };
+        public static Color[] ForeColorStyle = { Color.DarkBlue, Color.Black, Color.Yellow };
+        public static string[] FontStyle = { "Times New Roman", "Calibri", "Arial" };
+        static int theme = 0;
+        static int font = 0;
+        static int size = 12;
+        public int Mytheme
+        {
+            get
+            {
+                return theme;
+            }
+            set
+            {
+                theme = value;
+            }
+
+        }
+        public int MyFont
+        {
+            get
+            {
+                return font;
+            }
+            set
+            {
+                font = value;
+            }
+        }
+        public int MySize
+        {
+            get
+            {
+                return size;
+            }
+            set
+            {
+                size = value;
+            }
+        }
+
+
+        public static void MakeStyle(Form form)
+        {
+            form.BackColor = BackColorStyle[theme];
+            form.ForeColor = ForeColorStyle[theme];
+            form.Font = new Font(FontStyle[font], size);
+        }
+    }
+}
+Information.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Exam_Tickets
+{
+    public partial class Information : Form
+    {
+        public Information()
+        {
+            InitializeComponent();
+        }
+
+        private void Information_Load(object sender, EventArgs e)
+        {
+            Style.MakeStyle(this);
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                byte[] fileBytes = Properties.Resources.Вопрос_1;
+
+                if (fileBytes == null)
+                {
+                    MessageBox.Show($"Ресурс 'Вопрос_1' не найден в Properties.Resources.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                using (Stream stream = new MemoryStream(fileBytes))
+                {
+                    string tempFileName = Path.GetFileName("Вопрос_1.docx");
+                    string tempFilePath = Path.Combine(Path.GetTempPath(), "temp_" + tempFileName);
+
+                    using (FileStream tempFileStream = File.Create(tempFilePath))
+                    {
+                        stream.CopyTo(tempFileStream);
+                    }
+
+                    ProcessStartInfo psi = new ProcessStartInfo(tempFilePath)
+                    {
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
+                    this.FormClosing += (s, args) =>
+                    {
+                        try
+                        {
+                            if (File.Exists(tempFilePath))
+                            {
+                                File.Delete(tempFilePath);
+                            }
+                        }
+                        catch { }
+                    };
+                };
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при работе с ресурсом или открытии файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                byte[] fileBytes = Properties.Resources.Билет_1_ПРИМЕР;
+
+                using (Stream stream = new MemoryStream(fileBytes))
+                {
+                    string tempFileName = Path.GetFileName("Билет_1_ПРИМЕР.docx");
+                    string tempFilePath = Path.Combine(Path.GetTempPath(), "temp_" + tempFileName);
+
+                    using (FileStream tempFileStream = File.Create(tempFilePath))
+                    {
+                        stream.CopyTo(tempFileStream);
+                    }
+
+                    ProcessStartInfo psi = new ProcessStartInfo(tempFilePath)
+                    {
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
+                    this.FormClosing += (s, args) =>
+                    {
+                        try
+                        {
+                            if (File.Exists(tempFilePath))
+                            {
+                                File.Delete(tempFilePath);
+                            }
+                        }
+                        catch { }
+                    };
+                };
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при работе с ресурсом или открытии файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void Information_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            this.Owner.Visible = true;
+        }
+    }
+}
+

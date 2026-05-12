@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="ExamTickets.WPF.Views.Pages.UserManagementPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:conv="clr-namespace:ExamTickets.WPF.Converters"
+      mc:Ignorable="d"
+      Title="Управление пользователями">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <conv:StringEqualsConverter x:Key="StringEqualsConverter" />
+    </Page.Resources>
+
+    <Grid Margin="16" Background="{DynamicResource MaterialDesignPaper}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <ToggleButton Content="Все"
+                          Margin="0,0,8,0"
+                          IsChecked="{Binding SelectedRoleFilter, Mode=TwoWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Все}" />
+            <ToggleButton Content="Администраторы"
+                          Margin="0,0,8,0"
+                          IsChecked="{Binding SelectedRoleFilter, Mode=TwoWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Администраторы}" />
+            <ToggleButton Content="Председатели"
+                          Margin="0,0,8,0"
+                          IsChecked="{Binding SelectedRoleFilter, Mode=TwoWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Председатели}" />
+            <ToggleButton Content="Учителя"
+                          Margin="0,0,8,0"
+                          IsChecked="{Binding SelectedRoleFilter, Mode=TwoWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Учителя}" />
+
+            <Button Content="Добавить"
+                    Margin="16,0,0,0"
+                    Command="{Binding StartAddCommand}" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Users}"
+                  SelectedItem="{Binding SelectedUser}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Логин" Binding="{Binding Login, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                <DataGridTextColumn Header="ФИО" Binding="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
+                <DataGridTextColumn Header="Роль" Binding="{Binding Role}" Width="120" />
+                <DataGridTextColumn Header="Активен" Binding="{Binding IsActive}" Width="90" />
+                <DataGridTextColumn Header="Дата" Binding="{Binding CreatedAt, StringFormat=dd.MM.yyyy HH:mm}" Width="160" />
+
+                <DataGridTemplateColumn Header="Действия" Width="320">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Редактировать"
+                                        Command="{Binding DataContext.StartEditCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                        CommandParameter="{Binding}"
+                                        Margin="0,0,8,0" />
+                                <Button Content="Сброс пароля"
+                                        Command="{Binding DataContext.ResetPasswordCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                        CommandParameter="{Binding}"
+                                        Margin="0,0,8,0" />
+                                <Button Content="Блок/Разблок"
+                                        Command="{Binding DataContext.ToggleActiveCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                        CommandParameter="{Binding}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Page>

@@ -1,0 +1,449 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Diplom\\ExamTickets\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A782BC16-FB87-40C1-A12E-7BE776330AC4}|ExamTickets.Core\\ExamTickets.Core.csproj|d:\\diplom\\examtickets\\examtickets.core\\services\\documentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A782BC16-FB87-40C1-A12E-7BE776330AC4}|ExamTickets.Core\\ExamTickets.Core.csproj|solutionrelative:examtickets.core\\services\\documentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\historypage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\historypage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\auditlogpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\auditlogpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\auditlogpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\auditlogpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A782BC16-FB87-40C1-A12E-7BE776330AC4}|ExamTickets.Core\\ExamTickets.Core.csproj|d:\\diplom\\examtickets\\examtickets.core\\services\\auditservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A782BC16-FB87-40C1-A12E-7BE776330AC4}|ExamTickets.Core\\ExamTickets.Core.csproj|solutionrelative:examtickets.core\\services\\auditservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\settingsviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\settingsviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\settingspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\settingspage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\ticketcreationviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\ticketcreationviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\auditlogviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\auditlogviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\dashboardpage.xaml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\dashboardpage.xaml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\dashboardviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\dashboardviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\databasemanagementpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\databasemanagementpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\databasemanagementviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\databasemanagementviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\historyviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\historyviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\loginviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\loginviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\mainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\mainviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\viewmodels\\usermanagementviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\viewmodels\\usermanagementviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\usermanagementpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\usermanagementpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\usermanagementpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\usermanagementpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\ticketcreationpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\ticketcreationpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\ticketcreationpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\ticketcreationpage.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\settingspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\settingspage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\historypage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\historypage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\databasemanagementpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\databasemanagementpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|d:\\diplom\\examtickets\\examtickets.wpf\\views\\pages\\dashboardpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3C82BDE7-A76C-43F7-949B-02E40E62E910}|ExamTickets.WPF\\ExamTickets.WPF.csproj|solutionrelative:examtickets.wpf\\views\\pages\\dashboardpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A782BC16-FB87-40C1-A12E-7BE776330AC4}|ExamTickets.Core\\ExamTickets.Core.csproj|d:\\diplom\\examtickets\\examtickets.core\\services\\ticketgeneratorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A782BC16-FB87-40C1-A12E-7BE776330AC4}|ExamTickets.Core\\ExamTickets.Core.csproj|solutionrelative:examtickets.core\\services\\ticketgeneratorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 331,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AuditService.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.Core\\Services\\AuditService.cs",
+              "RelativeDocumentMoniker": "ExamTickets.Core\\Services\\AuditService.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.Core\\Services\\AuditService.cs",
+              "RelativeToolTip": "ExamTickets.Core\\Services\\AuditService.cs",
+              "ViewState": "AgIAACEAAAAAAAAAAAAYwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T18:22:21.637Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "DocumentService.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.Core\\Services\\DocumentService.cs",
+              "RelativeDocumentMoniker": "ExamTickets.Core\\Services\\DocumentService.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.Core\\Services\\DocumentService.cs",
+              "RelativeToolTip": "ExamTickets.Core\\Services\\DocumentService.cs",
+              "ViewState": "AgIAAF0AAAAAAAAAAAAswG8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T10:15:55.39Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "UserManagementPage.xaml.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:47.488Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "UserManagementPage.xaml",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\UserManagementPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T22:06:46.616Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "TicketCreationPage.xaml.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:45.184Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "TicketCreationPage.xaml",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\TicketCreationPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T22:06:44.357Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "SettingsPage.xaml.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:42.586Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "SettingsPage.xaml",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\SettingsPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T22:06:41.813Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "HistoryPage.xaml.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:40.149Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "HistoryPage.xaml",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\HistoryPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T22:06:39.342Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "DatabaseManagementPage.xaml.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:37.659Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "DatabaseManagementPage.xaml",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\DatabaseManagementPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T22:06:36.505Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "DashboardPage.xaml.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:35.604Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "DashboardPage.xaml",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\DashboardPage.xaml",
+              "ViewState": "AgIAAFgAAAAAAAAAAAAYwGQAAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T22:06:34.743Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AuditLogPage.xaml.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:33.818Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AuditLogPage.xaml",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml",
+              "RelativeToolTip": "ExamTickets.WPF\\Views\\Pages\\AuditLogPage.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-08T22:06:30.218Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "AuditLogViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\AuditLogViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\AuditLogViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\AuditLogViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\AuditLogViewModel.cs",
+              "ViewState": "AgIAAEAAAAAAAAAAAAAqwFIAAAB4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:27.325Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "DashboardViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\DashboardViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\DashboardViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\DashboardViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\DashboardViewModel.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAAwCUAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:26.566Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "DatabaseManagementViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\DatabaseManagementViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\DatabaseManagementViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\DatabaseManagementViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\DatabaseManagementViewModel.cs",
+              "ViewState": "AgIAALIBAAAAAAAAAAApwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:25.989Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "HistoryViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\HistoryViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\HistoryViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\HistoryViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\HistoryViewModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:24.23Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "LoginViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\LoginViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\LoginViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\LoginViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\LoginViewModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:24.666Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "MainViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\MainViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\MainViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\MainViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\MainViewModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:23.467Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "SettingsViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\SettingsViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\SettingsViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\SettingsViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\SettingsViewModel.cs",
+              "ViewState": "AgIAAFcAAAAAAAAAAAAgwGcAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:22.842Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "TicketCreationViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\TicketCreationViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\TicketCreationViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\TicketCreationViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\TicketCreationViewModel.cs",
+              "ViewState": "AgIAAA0CAAAAAAAAAAAAAB4CAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:21.496Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "UserManagementViewModel.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\UserManagementViewModel.cs",
+              "RelativeDocumentMoniker": "ExamTickets.WPF\\ViewModels\\UserManagementViewModel.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.WPF\\ViewModels\\UserManagementViewModel.cs",
+              "RelativeToolTip": "ExamTickets.WPF\\ViewModels\\UserManagementViewModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:06:20.674Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "TicketGeneratorService.cs",
+              "DocumentMoniker": "D:\\Diplom\\ExamTickets\\ExamTickets.Core\\Services\\TicketGeneratorService.cs",
+              "RelativeDocumentMoniker": "ExamTickets.Core\\Services\\TicketGeneratorService.cs",
+              "ToolTip": "D:\\Diplom\\ExamTickets\\ExamTickets.Core\\Services\\TicketGeneratorService.cs",
+              "RelativeToolTip": "ExamTickets.Core\\Services\\TicketGeneratorService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-08T22:05:27.268Z"
+            }
+          ]
+        },
+        {
+          "DockedWidth": 331,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
